@@ -389,9 +389,9 @@ onMounted(async () => {
       <div class="container mx-auto px-6 py-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div class="rounded-lg bg-gradient-to-br from-primary to-primary/80 p-2.5 shadow-lg">
+            <!--<div class="rounded-lg bg-gradient-to-br from-primary to-primary/80 p-2.5 shadow-lg">
               <Shield class="h-6 w-6 text-primary-foreground" />
-            </div>
+            </div>-->
             <div>
               <h1 class="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                 Classworks KV

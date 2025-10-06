@@ -1,3 +1,5 @@
+import axiosInstance from './axios'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3030'
 const SITE_KEY = import.meta.env.VITE_SITE_KEY || ''
 
@@ -8,27 +10,23 @@ class ApiClient {
   }
 
   async fetch(endpoint, options = {}) {
-    const headers = {
-      'Content-Type': 'application/json',
-      'x-site-key': this.siteKey,
-      ...options.headers,
-    }
+    const method = options.method || 'GET'
+    const headers = { ...options.headers }
+    const data = options.body
+    const params = options.params
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...options,
+    // 通过 axios 实例发起请求（已内置 baseURL 与 x-site-key）
+    const result = await axiosInstance.request({
+      url: endpoint,
+      method,
       headers,
+      data,
+      params,
     })
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }))
-      throw new Error(error.message || `HTTP ${response.status}`)
-    }
-
-    if (response.status === 204) {
-      return {}
-    }
-
-    return response.json()
+    // axios 响应拦截器已返回 response.data，这里做空值统一
+    if (result === '' || result === undefined || result === null) return {}
+    return result
   }
 
   // 带认证的fetch
