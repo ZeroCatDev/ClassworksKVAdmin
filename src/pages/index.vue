@@ -431,7 +431,7 @@ onMounted(async () => {
                     <ChevronDown class="h-3.5 w-3.5" :class="{ 'rotate-180': open }" />
                   </Button>
                 </template>
-                <DropdownItem @click="$router.push('/device-management')" :style="{
+                <DropdownItem :href="accountStore.profile.providerInfo.website" target="_blank" :style="{
                   backgroundColor: (accountStore.profile.providerInfo.color || '#999') + '22',
                   color: accountStore.profile.providerInfo.color || 'inherit',
                   border: `1px solid ${(accountStore.profile.providerInfo.color || '#999')}55`
