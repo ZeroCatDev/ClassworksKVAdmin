@@ -20,14 +20,16 @@
             v-for="provider in providers"
             :key="provider.id"
             @click="handleLogin(provider)"
-            class="w-full flex items-center gap-3 px-4 py-3 border rounded-lg hover:bg-accent transition-colors"
-            :style="{ borderColor: provider.color + '20' }"
+            class="w-full flex items-center gap-3 px-4 py-3 border rounded-lg transition-colors hover:bg-accent"
+            :style="{
+              borderColor: (provider.color || '#666')
+            }"
           >
-            <div class="w-10 h-10 flex items-center justify-center rounded-lg" :style="{ backgroundColor: provider.color + '10' }">
-              <component :is="getProviderIcon(provider.icon)" class="w-6 h-6" :style="{ color: provider.color }" />
+            <div class="w-10 h-10 flex items-center justify-center rounded-lg bg-muted">
+              <component :is="getProviderIcon(provider.icon)" class="w-6 h-6" />
             </div>
             <div class="flex-1 text-left">
-              <div class="font-medium">{{ provider.name }}</div>
+              <div class="font-medium">{{ provider.displayName || provider.name }}</div>
               <div class="text-sm text-muted-foreground">{{ provider.description }}</div>
             </div>
             <ChevronRight class="w-5 h-5 text-muted-foreground" />
@@ -96,7 +98,9 @@ const getProviderIcon = (icon) => {
 const loadProviders = async () => {
   try {
     const response = await apiClient.getOAuthProviders()
-    providers.value = response.data || []
+    const list = response.data || []
+    // 后端已去除 order 字段，保持原顺序
+    providers.value = list
   } catch (error) {
     console.error('Failed to load OAuth providers:', error)
     toast.error('无法加载登录方式', {
@@ -142,8 +146,11 @@ const handleLogin = (provider) => {
         authWindow.close()
       }
 
+      const display = event.data.providerName || event.data.provider
+      const color = event.data.providerColor
       toast.success('登录成功', {
-        description: `已通过 ${event.data.provider} 登录`
+        description: `已通过 ${display} 登录`,
+        style: color ? { borderLeft: `4px solid ${color}` } : undefined
       })
 
       // 调用成功回调
@@ -180,11 +187,13 @@ const handleLogin = (provider) => {
 
         // 检查localStorage中是否有token（降级方案）
         const token = localStorage.getItem('auth_token')
-        const authProvider = localStorage.getItem('auth_provider')
+        const authProvider = localStorage.getItem('auth_provider_name') || localStorage.getItem('auth_provider')
+        const providerColor = localStorage.getItem('auth_provider_color')
 
         if (token) {
           toast.success('登录成功', {
-            description: `已通过 ${authProvider} 登录`
+            description: `已通过 ${authProvider || '账户'} 登录`,
+            style: providerColor ? { borderLeft: `4px solid ${providerColor}` } : undefined
           })
 
           // 调用成功回调
@@ -211,7 +220,7 @@ const handleLogin = (provider) => {
         description: '请重试'
       })
     }
-  }, 30000)
+  }, 300000)
 }
 
 onMounted(() => {

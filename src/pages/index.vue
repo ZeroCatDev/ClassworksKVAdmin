@@ -418,9 +418,27 @@ onMounted(async () => {
                     >
                     <User v-else class="h-4 w-4" />
                     <span class="hidden sm:inline">{{ accountStore.userName }}</span>
+                    <span v-if="accountStore.profile?.providerInfo"
+                          class="hidden md:inline px-1.5 py-0.5 rounded text-[10px]"
+                          :style="{
+                            backgroundColor: (accountStore.profile.providerInfo.color || '#999') + '22',
+                            color: accountStore.profile.providerInfo.color || 'inherit',
+                            border: `1px solid ${(accountStore.profile.providerInfo.color || '#999')}55`
+                          }"
+                    >
+                      {{ accountStore.profile.providerInfo.displayName }}
+                    </span>
                     <ChevronDown class="h-3.5 w-3.5" :class="{ 'rotate-180': open }" />
                   </Button>
                 </template>
+                <DropdownItem @click="$router.push('/device-management')" :style="{
+                  backgroundColor: (accountStore.profile.providerInfo.color || '#999') + '22',
+                  color: accountStore.profile.providerInfo.color || 'inherit',
+                  border: `1px solid ${(accountStore.profile.providerInfo.color || '#999')}55`
+                }">
+                  <Layers class="h-4 w-4" />
+                  账户渠道：{{ accountStore.profile.providerInfo.displayName }}
+                </DropdownItem>
 
                 <DropdownItem @click="$router.push('/device-management')">
                   <Layers class="h-4 w-4" />
@@ -445,6 +463,8 @@ onMounted(async () => {
               <User class="h-4 w-4 mr-2" />
               登录
             </Button>
+
+
 
 
             <Button

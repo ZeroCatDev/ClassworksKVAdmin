@@ -13,7 +13,7 @@ export function useOAuthCallback() {
   const accountStore = useAccountStore()
 
   const handleOAuthCallback = async () => {
-    const { token, provider, success, error } = route.query
+    const { token, provider, color, success, error } = route.query
 
     // 检查是否是OAuth回调
     if (!success && !error) {
@@ -25,14 +25,15 @@ export function useOAuthCallback() {
       try {
         // 保存token到localStorage
         localStorage.setItem('auth_token', token)
-        localStorage.setItem('auth_provider', provider)
+  localStorage.setItem('auth_provider', provider)
+  if (color) localStorage.setItem('auth_provider_color', color)
 
         // 登录到store
         await accountStore.login(token)
 
         // 显示成功提示
         toast.success('登录成功', {
-          description: `已通过 ${provider} 登录`
+          description: `已通过 ${provider} 登录`,
         })
 
         // 清除URL参数
@@ -51,7 +52,7 @@ export function useOAuthCallback() {
           window.opener.postMessage({
             type: 'oauth_success',
             token,
-            provider
+            provider,
           }, window.location.origin)
 
           // 延迟关闭窗口，确保消息已发送

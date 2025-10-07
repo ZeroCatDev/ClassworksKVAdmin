@@ -8,11 +8,15 @@ export const useAccountStore = defineStore('account', () => {
   const profile = ref(null)
   const devices = ref([])
   const loading = ref(false)
+  const providerName = ref(localStorage.getItem('auth_provider') || '')
+  const providerColor = ref(localStorage.getItem('auth_provider_color') || '')
 
   // 计算属性
   const isAuthenticated = computed(() => !!token.value)
   const userName = computed(() => profile.value?.name || '')
   const userAvatar = computed(() => profile.value?.avatarUrl || '')
+  const userProviderDisplay = computed(() => profile.value?.providerInfo?.displayName || profile.value?.providerInfo?.name || providerName.value || profile.value?.provider || '')
+  const userProviderColor = computed(() => profile.value?.providerInfo?.color || providerColor.value || '')
 
   // 方法
   const setToken = (newToken) => {
@@ -22,6 +26,9 @@ export const useAccountStore = defineStore('account', () => {
     } else {
       localStorage.removeItem('auth_token')
       localStorage.removeItem('auth_provider')
+      localStorage.removeItem('auth_provider_color')
+      providerName.value = ''
+      providerColor.value = ''
     }
   }
 
@@ -32,6 +39,14 @@ export const useAccountStore = defineStore('account', () => {
     try {
       const response = await apiClient.getAccountProfile(token.value)
       profile.value = response.data
+      // 若后端返回 providerInfo，则回填前端展示字段
+      const p = profile.value?.providerInfo
+      if (p) {
+        providerName.value = p.displayName || p.name || profile.value?.provider || providerName.value
+        providerColor.value = p.color || providerColor.value
+        localStorage.setItem('auth_provider', providerName.value)
+        if (providerColor.value) localStorage.setItem('auth_provider_color', providerColor.value)
+      }
     } catch (error) {
       console.error('Failed to load profile:', error)
       // Token可能无效，清除
@@ -86,6 +101,9 @@ export const useAccountStore = defineStore('account', () => {
     devices.value = []
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_provider')
+    localStorage.removeItem('auth_provider_color')
+    providerName.value = ''
+    providerColor.value = ''
   }
 
   // 初始化时加载用户信息
@@ -100,10 +118,14 @@ export const useAccountStore = defineStore('account', () => {
     profile,
     devices,
     loading,
+    providerName,
+    providerColor,
     // 计算属性
     isAuthenticated,
     userName,
     userAvatar,
+    userProviderDisplay,
+    userProviderColor,
     // 方法
     setToken,
     loadProfile,
