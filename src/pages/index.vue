@@ -14,6 +14,7 @@ import { Plus, Trash2, Key, Shield, RefreshCw, Copy, CheckCircle2, Settings, Pac
 import DropdownMenu from '@/components/ui/dropdown-menu/DropdownMenu.vue'
 import DropdownItem from '@/components/ui/dropdown-menu/DropdownItem.vue'
 import AppCard from '@/components/AppCard.vue'
+import TokenList from '@/components/TokenList.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
 import DeviceRegisterDialog from '@/components/DeviceRegisterDialog.vue'
@@ -39,6 +40,7 @@ const showEditNameDialog = ref(false)
 const showUserMenu = ref(false)
 const deviceRequired = ref(false) // 标记是否必须注册设备
 const selectedToken = ref(null)
+const showTokenDialog = ref(false)
 
 // Form data
 const appIdToAuthorize = ref('')
@@ -56,19 +58,22 @@ const { handleOAuthCallback } = useOAuthCallback()
 // 使用计算属性来获取是否有密码
 const hasPassword = computed(() => deviceInfo.value?.hasPassword || false)
 
-//  Group tokens by appId
-const groupedByApp = computed(() => {
+// 为 TokenList 扁平化数据并附带 appName
+const flatTokenList = computed(() => {
+  return tokens.value.map(t => ({
+    ...t,
+    appName: appInfoCache.value[t.appId]?.name || null,
+  }))
+})
+
+// 按应用分组以用于“应用卡片 + 下方小列表”布局
+const groupedTokens = computed(() => {
   const groups = {}
-  tokens.value.forEach(token => {
-    const appId = token.appId
-    if (!groups[appId]) {
-      groups[appId] = {
-        appId: appId,
-        tokens: []
-      }
-    }
-    groups[appId].tokens.push(token)
-  })
+  for (const t of tokens.value) {
+    const id = t.appId
+    if (!groups[id]) groups[id] = { appId: id, tokens: [] }
+    groups[id].tokens.push(t)
+  }
   return Object.values(groups)
 })
 
@@ -581,7 +586,7 @@ onMounted(async () => {
             <!-- Quick Stats -->
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div class="p-3 rounded-lg bg-muted/50 text-center">
-                <div class="text-2xl font-bold text-primary">{{ groupedByApp.length }}</div>
+                <div class="text-2xl font-bold text-primary">{{ new Set(tokens.map(t => t.appId)).size }}</div>
                 <div class="text-xs text-muted-foreground">应用数</div>
               </div>
               <div class="p-3 rounded-lg bg-muted/50 text-center">
@@ -612,7 +617,7 @@ onMounted(async () => {
 
 
       <div class="flex justify-between items-center">
-        <h2 class="text-xl font-semibold">已授权应用</h2>
+  <h2 class="text-xl font-semibold">已授权应用</h2>
         <Button @click="showAuthorizeDialog = true" class="gap-2">
           <Plus class="h-4 w-4" />
           授权新应用
@@ -626,7 +631,7 @@ onMounted(async () => {
       </div>
 
 
-      <Card v-else-if="groupedByApp.length === 0" class="border-dashed">
+      <Card v-else-if="tokens.length === 0" class="border-dashed">
         <CardContent class="flex flex-col items-center justify-center py-12">
           <Package class="h-16 w-16 text-muted-foreground/50 mb-4" />
           <p class="text-lg font-medium text-muted-foreground mb-2">暂无授权应用</p>
@@ -637,67 +642,33 @@ onMounted(async () => {
           </Button>
         </CardContent>
       </Card>
-
-
       <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div
-          v-for="app in groupedByApp"
-          :key="app.appId"
+          v-for="group in groupedTokens"
+          :key="group.appId"
           class="space-y-4"
         >
-          <AppCard :app-id="app.appId" />
-          <Card class="border-dashed">
-            <CardContent class="p-4 space-y-3">
-              <div
-                v-for="(token, index) in app.tokens"
-                :key="token.token"
-                class="p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-              >
-                <div class="space-y-2">
-                  <div class="flex items-center gap-2">
-                    <Key class="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                    <code class="text-xs font-mono flex-1 truncate">
-                      {{ token.token }}
-                    </code>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      class="h-7 w-7 p-0"
-                      @click="copyToClipboard(token.token, token.token)"
-                    >
-                      <CheckCircle2 v-if="copied === token.token" class="h-3 w-3 text-green-500" />
-                      <Copy v-else class="h-3 w-3" />
-                    </Button>
-                  </div>
+          <AppCard :app-id="group.appId" />
 
-                  <div v-if="token.note" class="text-xs text-muted-foreground pl-5">
-                    {{ token.note }}
-                  </div>
+              <TokenList
+                :items="group.tokens.map(t => ({
+                  id: t.id,
+                  token: t.token,
+                  appId: t.appId,
+                  appName: appInfoCache[t.appId]?.name || null,
+                  note: t.note,
+                  installedAt: t.installedAt,
+                }))"
+                :loading="isLoading"
+                :copied-id="copied"
+                :show-app-column="false"
+                compact
+                sort-by-time
+                @copy="(item) => copyToClipboard(item.token, item.token)"
+                @revoke="confirmRevoke"
+                @open="(item) => { selectedToken = item; showTokenDialog = true }"
+              />
 
-                  <div class="flex items-center justify-between pl-5">
-                    <div class="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock class="h-3 w-3" />
-                      {{ formatDate(token.installedAt) }}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      class="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                      @click="confirmRevoke(token)"
-                    >
-                      <Trash2 class="h-3 w-3 mr-1" />
-                      撤销
-                    </Button>
-                  </div>
-                </div>
-
-                <div
-                  v-if="index < app.tokens.length - 1"
-                  class="mt-3 border-t border-border/50"
-                />
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
@@ -759,7 +730,7 @@ onMounted(async () => {
           <DialogHeader>
             <DialogTitle>撤销授权</DialogTitle>
             <DialogDescription>
-              确定要撤销此令牌的授权吗？此操作无法撤销。{{selectedToken}}
+              确定要撤销此令牌的授权吗？此操作无法撤销。
             </DialogDescription>
           </DialogHeader>
           <div v-if="selectedToken" class="py-4 space-y-4">
@@ -808,6 +779,53 @@ onMounted(async () => {
             <Button variant="destructive" @click="revokeToken">
               确认撤销
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <!-- 令牌详情弹框 -->
+      <Dialog v-model:open="showTokenDialog">
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>令牌详情</DialogTitle>
+            <DialogDescription>
+              查看并对该令牌执行操作
+            </DialogDescription>
+          </DialogHeader>
+          <div v-if="selectedToken" class="space-y-3 py-2">
+            <div class="text-sm">
+              <span class="font-medium">备注：</span>
+              <span>{{ selectedToken.note || '—' }}</span>
+            </div>
+            <div class="text-sm">
+              <span class="font-medium">应用名称：</span>
+              <span>{{ selectedToken.appName }}</span>
+            </div>
+            <div class="text-sm">
+              <span class="font-medium">应用ID：</span>
+              <span>{{ selectedToken.appId }}</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="font-medium">令牌：</span>
+              <code class="text-xs font-mono break-all">{{ selectedToken.token.slice(0, 8) }}...</code>
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-7 w-7 ml-auto"
+                @click="copyToClipboard(selectedToken.token, selectedToken.token)"
+              >
+                <CheckCircle2 v-if="copied === selectedToken.token" class="h-3.5 w-3.5 text-green-500" />
+                <Copy v-else class="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <div class="text-sm text-muted-foreground flex items-center gap-2">
+              <Clock class="h-4 w-4" />
+              <span>{{ formatDate(selectedToken.installedAt) }}</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" @click="showTokenDialog = false">关闭</Button>
+            <Button variant="destructive" @click="() => { showTokenDialog = false; confirmRevoke(selectedToken) }">撤销</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

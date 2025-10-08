@@ -118,6 +118,10 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    /* Reserve space for the vertical scrollbar to avoid layout shift/flicker */
+    scrollbar-gutter: stable;
+  }
   body {
     @apply bg-background text-foreground;
   }
@@ -127,6 +131,8 @@
 .page-enter-active,
 .page-leave-active {
   transition: opacity 200ms ease, transform 200ms ease;
+    will-change: opacity;
+
 }
 .page-enter-from,
 .page-leave-to {
