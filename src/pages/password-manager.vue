@@ -391,11 +391,11 @@ onMounted(async () => {
       <h2 class="text-xl font-semibold mt-12 mb-4">设备管理</h2>
 
       <!-- 设备重置卡片 -->
-      <Card class="mb-6 border-red-200 dark:border-red-900">
+      <Card class="mb-6 ">
         <CardHeader>
           <CardTitle class="text-lg flex items-center gap-2">
-            <Smartphone class="h-5 w-5 text-red-500" />
-            重置设备
+            <Smartphone class="h-5 w-5" />
+            更换设备
           </CardTitle>
           <CardDescription>
             更换新的设备标识。
@@ -410,7 +410,7 @@ onMounted(async () => {
               @click="showResetDeviceDialog = true"
             >
               <RefreshCw class="h-4 w-4" />
-              重置设备
+              更换设备
             </Button>
           </div>
         </CardContent>

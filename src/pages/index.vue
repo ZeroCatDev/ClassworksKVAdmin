@@ -736,7 +736,7 @@ onMounted(async () => {
                 :show-hint="true"
                 :show-strength="false"
                 :required="!accountStore.isAuthenticated"
-              />
+              /><br/>
               <p v-if="accountStore.isAuthenticated" class="text-xs text-muted-foreground mt-2">
                 已登录绑定账户，无需输入密码
               </p>
