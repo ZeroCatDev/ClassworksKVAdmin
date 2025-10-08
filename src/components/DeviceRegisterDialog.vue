@@ -33,8 +33,10 @@ const newUuid = ref('')
 const deviceName = ref('')
 const bindToAccount = ref(false)
 const accountDevices = ref([])
+const historyDevices = ref([])
+const manualUuid = ref('')
 const loadingDevices = ref(false)
-const activeTab = ref('load') // 'load' 或 'register'
+const activeTab = ref('load') // 'load' | 'history' | 'register'
 const showLoginDialog = ref(false) // 登录对话框状态
 
 const isOpen = computed({
@@ -47,6 +49,9 @@ watch(isOpen, (newVal) => {
   if (newVal && accountStore.isAuthenticated && activeTab.value === 'load') {
     loadAccountDevices()
   }
+  if (newVal && activeTab.value === 'history') {
+    loadHistoryDevices()
+  }
   // 切换到注册选项卡时，自动生成UUID
   if (newVal && activeTab.value === 'register' && !newUuid.value) {
     generateRandomUuid()
@@ -57,6 +62,9 @@ watch(isOpen, (newVal) => {
 watch(activeTab, (newVal) => {
   if (newVal === 'load' && accountStore.isAuthenticated && isOpen.value) {
     loadAccountDevices()
+  }
+  if (newVal === 'history' && isOpen.value) {
+    loadHistoryDevices()
   }
   if (newVal === 'register' && !newUuid.value) {
     generateRandomUuid()
@@ -121,10 +129,33 @@ const loadAccountDevices = async () => {
 // 加载选中的设备
 const loadDevice = (device) => {
   deviceStore.setDeviceUuid(device.uuid)
+  // 写入历史
+  deviceStore.addDeviceToHistory({ uuid: device.uuid, name: device.name })
   isOpen.value = false
   emit('confirm')
   resetForm()
   toast.success(`已切换到设备: ${device.name || device.uuid}`)
+}
+
+// 手动输入UUID加载
+const loadByUuid = () => {
+  const id = manualUuid.value?.trim()
+  if (!id) {
+    toast.error('请输入设备 UUID')
+    return
+  }
+  // 可选：基本格式校验（宽松处理，避免误判合法UUID）
+  const ok = /^[0-9a-fA-F-]{8,}$/.test(id)
+  if (!ok) {
+    toast.error('UUID 格式不正确')
+    return
+  }
+  deviceStore.setDeviceUuid(id)
+  deviceStore.addDeviceToHistory({ uuid: id })
+  isOpen.value = false
+  emit('confirm')
+  resetForm()
+  toast.success(`已切换到设备: ${id}`)
 }
 
 // 注册新设备
@@ -142,6 +173,8 @@ const registerDevice = async () => {
   try {
     // 1. 保存UUID到本地
     deviceStore.setDeviceUuid(newUuid.value.trim())
+    // 写入历史
+    deviceStore.addDeviceToHistory({ uuid: newUuid.value.trim(), name: deviceName.value.trim() })
 
     // 2. 调用设备注册接口（会自动在云端创建设备）
     await apiClient.registerDevice(
@@ -181,6 +214,7 @@ const resetForm = () => {
   bindToAccount.value = accountStore.isAuthenticated
   accountDevices.value = []
   activeTab.value = 'load'
+  manualUuid.value = ''
 }
 
 // 处理弹框关闭
@@ -211,6 +245,11 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown, true)
 })
+
+// 加载本地历史设备
+const loadHistoryDevices = () => {
+  historyDevices.value = deviceStore.getDeviceHistory()
+}
 </script>
 
 <template>
@@ -239,10 +278,13 @@ onUnmounted(() => {
       </DialogHeader>
 
       <Tabs v-model="activeTab" class="w-full">
-        <TabsList class="grid w-full grid-cols-2">
+        <TabsList class="grid w-full grid-cols-3">
           <TabsTrigger value="load">
             <Download class="h-4 w-4 mr-2" />
             加载设备
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            历史记录
           </TabsTrigger>
           <TabsTrigger value="register">
             <Plus class="h-4 w-4 mr-2" />
@@ -252,53 +294,78 @@ onUnmounted(() => {
 
         <!-- 加载设备选项卡 -->
         <TabsContent value="load" class="space-y-4 mt-4">
-          <div v-if="!accountStore.isAuthenticated" class="text-center py-8">
-            <p class="text-muted-foreground mb-4">请先登录以查看您的设备列表</p>
-            <Button variant="outline" @click="handleOpenLogin">
-              登录账户
-            </Button>
-          </div>
+          <!-- 账户设备区域 -->
+          <div class="space-y-3">
+            <div v-if="!accountStore.isAuthenticated" class="text-center py-6">
+              <p class="text-muted-foreground mb-3">登录后可查看您账户绑定的设备</p>
+              <Button variant="outline" @click="handleOpenLogin">
+                登录账户
+              </Button>
+            </div>
 
-          <div v-else-if="loadingDevices" class="text-center py-8">
-            <p class="text-muted-foreground">加载中...</p>
-          </div>
+            <div v-else>
+              <div v-if="loadingDevices" class="text-center py-6">
+                <p class="text-muted-foreground">加载中...</p>
+              </div>
 
-          <div v-else-if="accountDevices.length === 0" class="text-center py-8">
-            <p class="text-muted-foreground mb-4">您的账户暂未绑定任何设备</p>
-            <Button variant="outline" @click="activeTab = 'register'">
-              <Plus class="h-4 w-4 mr-2" />
-              注册新设备
-            </Button>
-          </div>
-
-          <div v-else class="space-y-2 max-h-96 overflow-y-auto">
-            <div
-              v-for="device in accountDevices"
-              :key="device.uuid"
-              class="p-4 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
-              @click="loadDevice(device)"
-            >
-              <div class="flex items-start justify-between">
-                <div class="flex-1">
-                  <div class="font-medium text-base">
-                    {{ device.name || '未命名设备' }}
-                  </div>
-                  <code class="text-xs text-muted-foreground block mt-1">
-                    {{ device.uuid }}
-                  </code>
-                  <div class="text-xs text-muted-foreground mt-2">
-                    创建时间: {{ new Date(device.createdAt).toLocaleString('zh-CN') }}
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  @click.stop="loadDevice(device)"
-                >
-                  加载
+              <div v-else-if="accountDevices.length === 0" class="text-center py-6">
+                <p class="text-muted-foreground mb-3">您的账户暂未绑定任何设备</p>
+                <Button variant="outline" @click="activeTab = 'register'">
+                  <Plus class="h-4 w-4 mr-2" />
+                  注册新设备
                 </Button>
               </div>
+
+              <div v-else class="space-y-2 max-h-96 overflow-y-auto">
+                <div
+                  v-for="device in accountDevices"
+                  :key="device.uuid"
+                  class="p-4 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
+                  @click="loadDevice(device)"
+                >
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <div class="font-medium text-base">
+                        {{ device.name || '未命名设备' }}
+                      </div>
+                      <code class="text-xs text-muted-foreground block mt-1">
+                        {{ device.uuid }}
+                      </code>
+                      <div class="text-xs text-muted-foreground mt-2">
+                        创建时间: {{ new Date(device.createdAt).toLocaleString('zh-CN') }}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      @click.stop="loadDevice(device)"
+                    >
+                      加载
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
+
+          <Separator />
+
+          <!-- 手动输入 UUID 加载 -->
+          <div class="space-y-2">
+            <Label for="manualUuid">手动输入 UUID</Label>
+            <div class="flex gap-2">
+              <Input
+                id="manualUuid"
+                v-model="manualUuid"
+                placeholder="输入设备 UUID 直接加载"
+                class="flex-1"
+                @keyup.enter="loadByUuid"
+              />
+              <Button @click="loadByUuid" :disabled="!manualUuid.trim()">
+                加载
+              </Button>
+            </div>
+            <p class="text-xs text-muted-foreground">无需注册或登录即可加载已有设备。</p>
           </div>
         </TabsContent>
 
@@ -328,7 +395,7 @@ onUnmounted(() => {
 
             <!-- 设备名称输入 -->
             <div class="space-y-2">
-              <Label for="deviceName">设备名称</Label>
+              <Label for="deviceName">* 设备名称</Label>
               <Input
                 id="deviceName"
                 v-model="deviceName"
@@ -361,16 +428,6 @@ onUnmounted(() => {
                 </p>
               </div>
             </div>
-
-            <!-- 提示信息 -->
-            <div class="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-3">
-              <p><strong>提示:</strong></p>
-              <ul class="list-disc list-inside mt-1 space-y-1">
-                <li>UUID将保存到本地浏览器存储</li>
-                <li v-if="deviceName">设备名称将帮助您快速识别不同的设备</li>
-                <li v-if="bindToAccount && accountStore.isAuthenticated">绑定后可在任何设备上通过账户加载</li>
-              </ul>
-            </div>
           </div>
 
           <div class="flex justify-end gap-2 pt-2">
@@ -386,6 +443,42 @@ onUnmounted(() => {
               <Plus class="h-4 w-4 mr-2" />
               注册设备
             </Button>
+          </div>
+        </TabsContent>
+
+        <!-- 历史设备选项卡 -->
+        <TabsContent value="history" class="space-y-4 mt-4">
+          <div v-if="historyDevices.length === 0" class="text-center py-8 text-muted-foreground">
+            暂无历史设备
+          </div>
+          <div v-else class="space-y-2 max-h-96 overflow-y-auto">
+            <div
+              v-for="device in historyDevices"
+              :key="device.uuid"
+              class="p-4 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
+              @click="loadDevice(device)"
+            >
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="font-medium text-base">
+                    {{ device.name || '未命名设备' }}
+                  </div>
+                  <code class="text-xs text-muted-foreground block mt-1">
+                    {{ device.uuid }}
+                  </code>
+                  <div class="text-xs text-muted-foreground mt-2">
+                    最近使用: {{ new Date(device.lastUsedAt).toLocaleString('zh-CN') }}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  @click.stop="loadDevice(device)"
+                >
+                  加载
+                </Button>
+              </div>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

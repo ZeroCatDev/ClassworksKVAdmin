@@ -218,6 +218,10 @@ const copyToClipboard = async (text, id) => {
 const updateUuid = () => {
   showRegisterDialog.value = false
   deviceUuid.value = deviceStore.getDeviceUuid()
+  // 记录到历史
+  if (deviceUuid.value) {
+    deviceStore.addDeviceToHistory({ uuid: deviceUuid.value, name: deviceInfo.value?.name || deviceInfo.value?.deviceName })
+  }
   loadDeviceInfo()
   loadDeviceAccount()
   loadTokens()
@@ -400,6 +404,15 @@ onMounted(async () => {
             </div>
           </div>
           <div class="flex items-center gap-2">
+            <!-- 切换设备按钮 -->
+            <Button
+              variant="outline"
+              size="sm"
+              @click="showRegisterDialog = true"
+              title="切换设备"
+            >
+              切换设备
+            </Button>
             <!-- 账户状态 -->
             <template v-if="accountStore.isAuthenticated">
               <DropdownMenu v-model:open="showUserMenu" class="z-50">

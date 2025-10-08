@@ -13,6 +13,7 @@ export const deviceStore = {
   STORAGE_KEY: 'device_uuid',
   BACKUP_KEY: 'device_uuid_backup',
   SESSION_KEY: 'device_uuid_session',
+  HISTORY_KEY: 'device_history', // 本地历史设备记录
 
   // 获取当前设备 UUID（从多个存储位置尝试读取）
   getDeviceUuid() {
@@ -188,4 +189,65 @@ export const deviceStore = {
 // 在页面加载时尝试从 IndexedDB 恢复
 if (typeof window !== 'undefined') {
   deviceStore.tryRestoreFromIndexedDB()
+}
+
+// 为 deviceStore 扩展历史设备管理功能
+// 记录结构：{ uuid: string, name?: string, lastUsedAt: number }
+deviceStore.getDeviceHistory = function () {
+  try {
+    const raw = localStorage.getItem(this.HISTORY_KEY)
+    const list = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(list)) return []
+    // 排序：最近使用在前
+    return list.sort((a, b) => (b.lastUsedAt || 0) - (a.lastUsedAt || 0))
+  } catch {
+    return []
+  }
+}
+
+deviceStore.addDeviceToHistory = function (device) {
+  try {
+    if (!device || !device.uuid) return
+    const maxItems = 20
+    const now = Date.now()
+    const list = this.getDeviceHistory()
+    const idx = list.findIndex(d => d.uuid === device.uuid)
+    const entry = {
+      uuid: device.uuid,
+      name: device.name || device.deviceName || '',
+      lastUsedAt: now
+    }
+    if (idx >= 0) {
+      // 更新名称和时间
+      list[idx] = { ...list[idx], ...entry }
+    } else {
+      list.unshift(entry)
+    }
+    // 去重（按 uuid）并截断
+    const uniqMap = new Map()
+    for (const item of list) {
+      if (!uniqMap.has(item.uuid)) uniqMap.set(item.uuid, item)
+    }
+    const next = Array.from(uniqMap.values()).slice(0, maxItems)
+    localStorage.setItem(this.HISTORY_KEY, JSON.stringify(next))
+  } catch {
+    // ignore
+  }
+}
+
+deviceStore.removeDeviceFromHistory = function (uuid) {
+  try {
+    const list = this.getDeviceHistory().filter(d => d.uuid !== uuid)
+    localStorage.setItem(this.HISTORY_KEY, JSON.stringify(list))
+  } catch {
+    // ignore
+  }
+}
+
+deviceStore.clearDeviceHistory = function () {
+  try {
+    localStorage.removeItem(this.HISTORY_KEY)
+  } catch {
+    // ignore
+  }
 }

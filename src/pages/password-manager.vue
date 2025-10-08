@@ -398,22 +398,11 @@ onMounted(async () => {
             重置设备
           </CardTitle>
           <CardDescription>
-            重置或换新设备标识。此操作无法撤销，您将失去当前设备的所有授权。
+            更换新的设备标识。
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div class="space-y-4">
-            <div class="p-4 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900">
-              <div class="flex items-start gap-2">
-                <AlertTriangle class="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
-                <div>
-                  <p class="text-sm font-medium text-red-900 dark:text-red-100">警告：此操作不可逆</p>
-                  <p class="text-sm text-red-700 dark:text-red-300 mt-1">
-                    重置设备后，您将获得全新的设备标识，现有的所有授权将被撤销，无法恢复。
-                  </p>
-                </div>
-              </div>
-            </div>
 
             <Button
               variant="destructive"
