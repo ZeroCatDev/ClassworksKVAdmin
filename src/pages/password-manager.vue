@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import PasswordInput from '@/components/PasswordInput.vue'
+import EditDeviceNameDialog from '@/components/EditDeviceNameDialog.vue'
 import {
   Shield,
   Key,
@@ -25,7 +26,8 @@ import {
   EyeOff,
   HelpCircle,
   RefreshCw,
-  Smartphone
+  Smartphone,
+  Copy
 } from 'lucide-vue-next'
 import DeviceRegisterDialog from '@/components/DeviceRegisterDialog.vue'
 
@@ -43,6 +45,7 @@ const showDeletePasswordDialog = ref(false)
 const showHintDialog = ref(false)
 const showResetDeviceDialog = ref(false)
 const showRegisterDialog = ref(false)
+const showEditNameDialog = ref(false)
 const deviceRequired = ref(false)
 
 // Form data
@@ -57,6 +60,20 @@ const hintPassword = ref('')
 const isLoading = ref(false)
 const successMessage = ref('')
 const errorMessage = ref('')
+const copied = ref(null)
+
+// 复制到剪贴板
+const copyToClipboard = async (text, type) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    copied.value = type
+    setTimeout(() => {
+      copied.value = null
+    }, 2000)
+  } catch (error) {
+    console.error('Failed to copy:', error)
+  }
+}
 
 // 加载设备信息
 const loadDeviceInfo = async () => {
@@ -246,6 +263,15 @@ const updateUuid = () => {
   loadDeviceInfo()
 }
 
+// 更新设备名称成功回调
+const handleDeviceNameUpdated = async () => {
+  await loadDeviceInfo()
+  successMessage.value = '设备名称已更新！'
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 3000)
+}
+
 onMounted(async () => {
   // 检查是否存在设备UUID
   const existingUuid = deviceStore.getDeviceUuid()
@@ -303,6 +329,83 @@ onMounted(async () => {
         </div>
       </div>
 
+      <!-- Device Info Card -->
+      <Card class="mb-6 border-2">
+        <CardHeader>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="rounded-lg bg-primary/10 p-2">
+                <Smartphone class="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <CardTitle>设备信息</CardTitle>
+                <CardDescription>设备标识和基本信息</CardDescription>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div class="space-y-4">
+            <!-- Device Name -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <Label class="text-sm font-medium">设备名称</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  @click="showEditNameDialog = true"
+                  class="h-7"
+                >
+                  <Edit class="h-3 w-3 mr-1" />
+                  编辑
+                </Button>
+              </div>
+              <div class="p-3 rounded-lg bg-muted/50">
+                <p class="text-sm">{{ deviceInfo?.name || '未命名设备' }}</p>
+              </div>
+            </div>
+
+            <!-- Device UUID -->
+            <div>
+              <Label class="text-sm font-medium mb-2 block">设备 UUID</Label>
+              <div class="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                <code class="flex-1 text-sm font-mono break-all">{{ deviceUuid }}</code>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="h-8 w-8 flex-shrink-0"
+                  @click="copyToClipboard(deviceUuid, 'uuid')"
+                  title="复制 UUID"
+                >
+                  <CheckCircle2 v-if="copied === 'uuid'" class="h-4 w-4 text-green-500" />
+                  <Copy v-else class="h-4 w-4" />
+                </Button>
+              </div>
+              <p class="text-xs text-muted-foreground mt-1">设备的唯一标识符，用于系统识别</p>
+            </div>
+
+            <!-- Namespace -->
+            <div>
+              <Label class="text-sm font-medium mb-2 block">命名空间</Label>
+              <div class="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                <code class="flex-1 text-sm font-mono break-all">{{ deviceInfo?.namespace || deviceUuid }}</code>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="h-8 w-8 flex-shrink-0"
+                  @click="copyToClipboard(deviceInfo?.namespace || deviceUuid, 'namespace')"
+                  title="复制命名空间"
+                >
+                  <CheckCircle2 v-if="copied === 'namespace'" class="h-4 w-4 text-green-500" />
+                  <Copy v-else class="h-4 w-4" />
+                </Button>
+              </div>
+              <p class="text-xs text-muted-foreground mt-1">用于自动授权登录的设备标识</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <!-- Password Status Card -->
       <Card class="mb-6 border-2">
         <CardHeader>
@@ -325,12 +428,6 @@ onMounted(async () => {
         </CardHeader>
         <CardContent>
           <div class="space-y-4">
-            <!-- Device UUID -->
-            <div class="p-4 rounded-lg bg-muted/50">
-              <Label class="text-xs text-muted-foreground">设备 UUID</Label>
-              <code class="block mt-1 text-sm font-mono break-all">{{ deviceUuid }}</code>
-            </div>
-
             <!-- Password Hint -->
             <div v-if="hasPassword && passwordHint" class="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900">
               <div class="flex items-start gap-2">
@@ -599,6 +696,15 @@ onMounted(async () => {
       v-model="showRegisterDialog"
       @confirm="updateUuid"
       :required="deviceRequired"
+    />
+
+    <!-- 设备名称编辑弹框 -->
+    <EditDeviceNameDialog
+      v-model="showEditNameDialog"
+      :device-uuid="deviceUuid"
+      :current-name="deviceInfo?.deviceName || ''"
+      :has-password="hasPassword"
+      @success="handleDeviceNameUpdated"
     />
   </div>
 </template>

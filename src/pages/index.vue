@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, Trash2, Key, Shield, RefreshCw, Copy, CheckCircle2, Settings, Package, Clock, AlertCircle, Lock, Info, User, LogOut, Layers, ChevronDown } from 'lucide-vue-next'
+import { Plus, Trash2, Key, Shield, RefreshCw, Copy, CheckCircle2, Settings, Package, Clock, AlertCircle, Lock, Info, User, LogOut, Layers, ChevronDown, TestTube2 } from 'lucide-vue-next'
 import DropdownMenu from '@/components/ui/dropdown-menu/DropdownMenu.vue'
 import DropdownItem from '@/components/ui/dropdown-menu/DropdownItem.vue'
 import AppCard from '@/components/AppCard.vue'
@@ -19,6 +19,8 @@ import PasswordInput from '@/components/PasswordInput.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
 import DeviceRegisterDialog from '@/components/DeviceRegisterDialog.vue'
 import EditDeviceNameDialog from '@/components/EditDeviceNameDialog.vue'
+import EditNamespaceDialog from '@/components/EditNamespaceDialog.vue'
+import FeatureNavigation from '@/components/FeatureNavigation.vue'
 import { toast } from 'vue-sonner'
 
 const deviceUuid = ref('')
@@ -37,6 +39,7 @@ const showRegisterDialog = ref(false)
 const showPasswordDialog = ref(false)
 const showLoginDialog = ref(false)
 const showEditNameDialog = ref(false)
+const showEditNamespaceDialog = ref(false)
 const showUserMenu = ref(false)
 const deviceRequired = ref(false) // 标记是否必须注册设备
 const selectedToken = ref(null)
@@ -57,6 +60,11 @@ const { handleOAuthCallback } = useOAuthCallback()
 
 // 使用计算属性来获取是否有密码
 const hasPassword = computed(() => deviceInfo.value?.hasPassword || false)
+
+// 检查 namespace 是否等于 UUID（需要提示用户修改）
+const namespaceEqualsUuid = computed(() => {
+  return deviceInfo.value && deviceInfo.value.namespace === deviceInfo.value.uuid
+})
 
 // 为 TokenList 扁平化数据并附带 appName
 const flatTokenList = computed(() => {
@@ -364,6 +372,14 @@ const handleDeviceNameUpdated = async (newName) => {
   await loadDeviceInfo()
 }
 
+// 更新 namespace 成功回调
+const handleNamespaceUpdated = async (newNamespace) => {
+  if (deviceInfo.value) {
+    deviceInfo.value.namespace = newNamespace
+  }
+  toast.success('命名空间已更新')
+}
+
 onMounted(async () => {
   // 检查是否存在设备UUID
   const existingUuid = deviceStore.getDeviceUuid()
@@ -466,6 +482,14 @@ onMounted(async () => {
                   <Settings class="h-4 w-4" />
                   高级设置
                 </DropdownItem>
+                <DropdownItem @click="$router.push('/auto-auth-management')">
+                  <Shield class="h-4 w-4" />
+                  自动授权配置
+                </DropdownItem>
+                <DropdownItem @click="$router.push('/auto-auth-test')">
+                  <TestTube2 class="h-4 w-4" />
+                  API 测试工具
+                </DropdownItem>
                 <DropdownItem @click="handleLogout" class="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300">
                   <LogOut class="h-4 w-4" />
                   退出登录
@@ -500,33 +524,50 @@ onMounted(async () => {
 
     <!-- Main Content -->
     <div class="container mx-auto px-6 py-8 max-w-7xl">
+      <!-- Namespace 提示卡片 - 如果 namespace 等于 UUID -->
+      <Card v-if="namespaceEqualsUuid" class="mb-6 border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20">
+        <CardContent class="py-4">
+          <div class="flex items-start gap-3">
+            <AlertCircle class="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+            <div class="flex-1">
+              <p class="text-sm font-medium text-yellow-900 dark:text-yellow-100 mb-1">
+                建议自定义命名空间
+              </p>
+              <p class="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
+                您的命名空间当前使用设备 UUID，建议修改为更有意义的名称（如班级名、房间号等），方便自动授权时识别。
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                @click="showEditNamespaceDialog = true"
+                class="bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-200 dark:hover:bg-yellow-900/50"
+              >
+                <Settings class="h-3 w-3 mr-2" />
+                立即修改
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <!-- Device Info Card -->
       <Card class="mb-8 border-2 shadow-xl bg-gradient-to-br from-card to-card/95">
         <CardHeader class="pb-4">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-3">
               <div class="rounded-lg bg-primary/10 p-2">
-                <Key class="h-5 w-5 text-primary" />
+                <Layers class="h-5 w-5 text-primary" />
               </div>
               <div>
                 <div class="flex items-center gap-2">
                   <CardTitle class="text-lg">
-                    {{ deviceInfo?.name || '设备标识' }}
+                    {{ deviceInfo?.name || '设备' }}
                   </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-6 w-6"
-                    @click="showEditNameDialog = true"
-                    title="编辑设备名称"
-                  >
-                    <Settings class="h-3 w-3" />
-                  </Button>
                 </div>
-                <CardDescription>您的唯一设备标识符</CardDescription>
+                <CardDescription>设备命名空间标识符</CardDescription>
               </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <Badge
                 variant="outline"
                 class="px-3 py-1"
@@ -534,7 +575,7 @@ onMounted(async () => {
               >
                 <Lock v-if="hasPassword" class="h-3 w-3 mr-1.5" />
                 <AlertCircle v-else class="h-3 w-3 mr-1.5" />
-                {{ hasPassword ? '已设密码保护' : '未设密码' }}
+                {{ hasPassword ? '已设密码' : '未设密码' }}
               </Badge>
 
               <!-- 设备账户绑定状态 -->
@@ -550,33 +591,56 @@ onMounted(async () => {
               >
                 <User class="h-4 w-4 mr-2" />
                 绑定到账户
-              </Button><Button
-              @click="$router.push('/password-manager')"
+              </Button>
+              <Button
+                @click="$router.push('/password-manager')"
                 variant="outline"
                 size="sm"
-              ><Settings class="h-4 w-4" />
-                  高级设置</Button>
+              >
+                <Settings class="h-4 w-4 mr-1" />
+                高级设置
+              </Button>
+              <Button
+                @click="$router.push('/auto-auth-management')"
+                variant="outline"
+                size="sm"
+              >
+                <Shield class="h-4 w-4 mr-1" />
+                自动授权
+              </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div class="space-y-4">
-            <!-- UUID Display -->
+            <!-- Namespace Display (主要显示) -->
             <div class="relative group">
               <div class="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 rounded-lg blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50" />
-              <div class="relative flex items-center gap-2 p-4 bg-gradient-to-r from-muted/80 to-muted/60 rounded-lg border">
-                <code class="flex-1 text-sm font-mono tracking-wider select-all">
-                  {{ deviceUuid }}
-                </code>
-                <div class="flex gap-1">
+              <div class="relative">
+                <div class="flex items-center justify-between mb-2">
+                  <Label class="text-sm font-medium">命名空间</Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    @click="showEditNamespaceDialog = true"
+                    class="h-7"
+                  >
+                    <Settings class="h-3 w-3 mr-1" />
+                    编辑
+                  </Button>
+                </div>
+                <div class="flex items-center gap-2 p-4 bg-gradient-to-r from-muted/80 to-muted/60 rounded-lg border">
+                  <code class="flex-1 text-sm font-mono tracking-wider select-all">
+                    {{ deviceInfo?.namespace || deviceUuid }}
+                  </code>
                   <Button
                     variant="ghost"
                     size="icon"
                     class="h-8 w-8"
-                    @click="copyToClipboard(deviceUuid, 'uuid')"
-                    title="复制设备标识"
+                    @click="copyToClipboard(deviceInfo?.namespace || deviceUuid, 'namespace')"
+                    title="复制命名空间"
                   >
-                    <CheckCircle2 v-if="copied === 'uuid'" class="h-4 w-4 text-green-500 animate-in zoom-in-50" />
+                    <CheckCircle2 v-if="copied === 'namespace'" class="h-4 w-4 text-green-500 animate-in zoom-in-50" />
                     <Copy v-else class="h-4 w-4" />
                   </Button>
                 </div>
@@ -670,6 +734,11 @@ onMounted(async () => {
               />
 
         </div>
+      </div>
+
+      <!-- 功能导航 -->
+      <div class="mt-12">
+        <FeatureNavigation />
       </div>
 
 
@@ -907,6 +976,16 @@ onMounted(async () => {
       :current-name="deviceInfo?.deviceName || ''"
       :has-password="hasPassword"
       @success="handleDeviceNameUpdated"
+    />
+
+    <!-- 命名空间编辑弹框 -->
+    <EditNamespaceDialog
+      v-if="accountStore.isAuthenticated && deviceInfo"
+      v-model="showEditNamespaceDialog"
+      :device-uuid="deviceUuid"
+      :current-namespace="deviceInfo.namespace"
+      :account-token="accountStore.token"
+      @success="handleNamespaceUpdated"
     />
   </div>
 </template>

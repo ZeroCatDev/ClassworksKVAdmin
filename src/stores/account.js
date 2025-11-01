@@ -15,6 +15,7 @@ export const useAccountStore = defineStore('account', () => {
   const isAuthenticated = computed(() => !!token.value)
   const userName = computed(() => profile.value?.name || '')
   const userAvatar = computed(() => profile.value?.avatarUrl || '')
+  const userId = computed(() => profile.value?.id || null)
   const userProviderDisplay = computed(() => profile.value?.providerInfo?.displayName || profile.value?.providerInfo?.name || providerName.value || profile.value?.provider || '')
   const userProviderColor = computed(() => profile.value?.providerInfo?.color || providerColor.value || '')
 
@@ -124,6 +125,7 @@ export const useAccountStore = defineStore('account', () => {
     isAuthenticated,
     userName,
     userAvatar,
+    userId,
     userProviderDisplay,
     userProviderColor,
     // 方法

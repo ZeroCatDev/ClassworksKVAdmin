@@ -526,6 +526,64 @@ class ApiClient {
       headers,
     });
   }
+
+  // ============ AutoAuth 管理 API ============
+  // 注意：所有 AutoAuth 管理接口现在需要 JWT Token 认证
+  // 只有已绑定账户的设备才能使用这些接口
+
+  // 获取设备的自动授权配置列表
+  async getAutoAuthConfigs(deviceUuid, token) {
+    return this.authenticatedFetch(`/auto-auth/devices/${deviceUuid}/auth-configs`, {
+      method: 'GET',
+    }, token);
+  }
+
+  // 创建自动授权配置
+  async createAutoAuthConfig(deviceUuid, token, config) {
+    return this.authenticatedFetch(`/auto-auth/devices/${deviceUuid}/auth-configs`, {
+      method: 'POST',
+      body: JSON.stringify(config),
+    }, token);
+  }
+
+  // 更新自动授权配置
+  async updateAutoAuthConfig(deviceUuid, token, configId, updates) {
+    return this.authenticatedFetch(`/auto-auth/devices/${deviceUuid}/auth-configs/${configId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }, token);
+  }
+
+  // 删除自动授权配置
+  async deleteAutoAuthConfig(deviceUuid, token, configId) {
+    return this.authenticatedFetch(`/auto-auth/devices/${deviceUuid}/auth-configs/${configId}`, {
+      method: 'DELETE',
+    }, token);
+  }
+
+  // 修改设备的 namespace
+  async updateDeviceNamespace(deviceUuid, token, namespace) {
+    return this.authenticatedFetch(`/auto-auth/devices/${deviceUuid}/namespace`, {
+      method: 'PUT',
+      body: JSON.stringify({ namespace }),
+    }, token);
+  }
+
+  // 通过 namespace 和密码获取 token (Apps API)
+  async getTokenByNamespace(namespace, password, appId) {
+    return this.fetch('/apps/auth/token', {
+      method: 'POST',
+      body: JSON.stringify({ namespace, password, appId }),
+    });
+  }
+
+  // 设置学生名称 (Apps API)
+  async setStudentName(token, name) {
+    return this.fetch(`/apps/tokens/${token}/set-student-name`, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL, SITE_KEY)
