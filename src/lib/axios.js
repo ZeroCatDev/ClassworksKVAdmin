@@ -158,6 +158,8 @@ axiosInstance.interceptors.response.use(
       try {
         // 若没有刷新能力或没有刷新令牌，则直接走失败逻辑
         if (!authHandlers?.refreshAccessToken || !authHandlers?.getRefreshToken || !authHandlers.getRefreshToken()) {
+          // 无法刷新，触发认证失败回调并退出
+          try { authHandlers?.onAuthFailure && authHandlers.onAuthFailure(new Error('NO_REFRESH_TOKEN')) } catch {}
           throw new Error('NO_REFRESH_TOKEN')
         }
 
@@ -180,9 +182,16 @@ axiosInstance.interceptors.response.use(
         // 由请求拦截器负责附加新 Authorization，无需手动改 headers
         return await axiosInstance.request(config)
       } catch (refreshErr) {
-        // 刷新失败，返回原始错误信息
+        // 刷新失败，触发认证失败并返回原始错误信息
+        try { authHandlers?.onAuthFailure && authHandlers.onAuthFailure(refreshErr) } catch {}
         return Promise.reject(new Error(message))
       }
+    }
+
+    // 明确的权限问题同样触发登出（例如服务端使用 403 表示 Token 无效或权限已失效）
+    if (status === 403) {
+      try { authHandlers?.onAuthFailure && authHandlers.onAuthFailure(new Error(message || 'FORBIDDEN')) } catch {}
+      return Promise.reject(new Error(message || 'FORBIDDEN'))
     }
 
     // 仅在后端提示设备不存在时尝试注册并重试，且保证只重试一次
