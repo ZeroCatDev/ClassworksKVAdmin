@@ -161,9 +161,7 @@ const authorizeApp = async () => {
       options.password = authPassword.value
     }
 
-    if (accountStore.isAuthenticated) {
-      options.token = accountStore.token
-    }
+    // 账户已登录时无需显式传 token，axios 会自动注入 Authorization
 
     // 调用授权接口
     await apiClient.authorizeApp(
@@ -327,7 +325,7 @@ const bindCurrentDevice = async () => {
   }
 
   try {
-    await apiClient.bindDeviceToAccount(accountStore.token, deviceUuid.value)
+  await apiClient.bindDeviceToAccount(deviceUuid.value)
     await loadDeviceInfo()
     toast.success('设备已绑定到您的账户')
   } catch (error) {
@@ -336,10 +334,9 @@ const bindCurrentDevice = async () => {
       try {
         await apiClient.registerDevice(
           deviceUuid.value,
-          deviceInfo.value?.deviceName || null,
-          accountStore.token
+          deviceInfo.value?.deviceName || null
         )
-        await apiClient.bindDeviceToAccount(accountStore.token, deviceUuid.value)
+        await apiClient.bindDeviceToAccount(deviceUuid.value)
         await loadDeviceInfo()
         toast.success('设备已注册并绑定到您的账户')
       } catch (retryError) {
@@ -359,7 +356,7 @@ const unbindCurrentDevice = async () => {
   }
 
   try {
-    await apiClient.unbindDeviceFromAccount(accountStore.token, deviceUuid.value)
+  await apiClient.unbindDeviceFromAccount(deviceUuid.value)
     await loadDeviceInfo()
     toast.success('设备已解绑')
   } catch (error) {
@@ -421,7 +418,7 @@ onMounted(async () => {
               <h1 class="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                 Classworks KV
               </h1>
-              <p class="text-sm text-muted-foreground">云原生键值数据库</p>
+              <p class="text-sm text-muted-foreground">文档形键值数据库</p>
             </div>
           </div>
           <div class="flex items-center gap-2">

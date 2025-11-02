@@ -310,35 +310,29 @@ class ApiClient {
     }
   }
 
-  // 账户相关 API
+  // 账户相关 API（Authorization 由 axios 拦截器统一注入）
   async getOAuthProviders() {
     return this.fetch('/accounts/oauth/providers')
   }
 
-  async getAccountProfile(token) {
-    return this.fetch('/accounts/profile', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+  async getAccountProfile() {
+    return this.fetch('/accounts/profile')
   }
 
-  async getAccountDevices(token) {
-    return this.fetch('/accounts/devices', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+  async getAccountDevices() {
+    return this.fetch('/accounts/devices')
   }
 
-  async bindDevice(token, deviceUuid) {
+  async bindDevice(deviceUuid) {
     return this.fetch('/accounts/devices/bind', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ uuid: deviceUuid }),
     })
   }
 
-  async unbindDevice(token, deviceUuid) {
+  async unbindDevice(deviceUuid) {
     return this.fetch('/accounts/devices/unbind', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ uuid: deviceUuid }),
     })
   }
@@ -347,28 +341,44 @@ class ApiClient {
     return this.fetch(`/accounts/device/${deviceUuid}/account`)
   }
 
+  // ===== 账户 Token 刷新与信息 =====
+  async refreshAccessToken(refreshToken) {
+    return this.fetch('/accounts/refresh', {
+      method: 'POST',
+      // 刷新接口不应由请求拦截器附加旧的 Authorization
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+  }
+
+  async getTokenInfo(accessToken) {
+    return this.fetch('/accounts/token-info', {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    })
+  }
+
   // 绑定设备到当前账户
-  async bindDeviceToAccount(token, deviceUuid) {
-    return this.authenticatedFetch('/accounts/devices/bind', {
+  async bindDeviceToAccount(deviceUuid) {
+    return this.fetch('/accounts/devices/bind', {
       method: 'POST',
       body: JSON.stringify({ uuid: deviceUuid }),
-    }, token)
+    })
   }
 
   // 解绑设备
-  async unbindDeviceFromAccount(token, deviceUuid) {
-    return this.authenticatedFetch('/accounts/devices/unbind', {
+  async unbindDeviceFromAccount(deviceUuid) {
+    return this.fetch('/accounts/devices/unbind', {
       method: 'POST',
       body: JSON.stringify({ uuid: deviceUuid }),
-    }, token)
+    })
   }
 
   // 批量解绑设备
-  async batchUnbindDevices(token, deviceUuids) {
-    return this.authenticatedFetch('/accounts/devices/unbind', {
+  async batchUnbindDevices(deviceUuids) {
+    return this.fetch('/accounts/devices/unbind', {
       method: 'POST',
       body: JSON.stringify({ uuids: deviceUuids }),
-    }, token)
+    })
   }
 
   // 设备名称管理 API

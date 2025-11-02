@@ -56,6 +56,10 @@ watch(isOpen, (newVal) => {
   if (newVal && activeTab.value === 'register' && !newUuid.value) {
     generateRandomUuid()
   }
+  // 对话框打开且当前为注册页时，根据登录状态默认勾选绑定
+  if (newVal && activeTab.value === 'register' && accountStore.isAuthenticated) {
+    bindToAccount.value = true
+  }
 })
 
 // 监听选项卡切换
@@ -68,6 +72,10 @@ watch(activeTab, (newVal) => {
   }
   if (newVal === 'register' && !newUuid.value) {
     generateRandomUuid()
+  }
+  // 进入注册页时，根据当前登录状态设置“绑定到账户”的默认勾选
+  if (newVal === 'register') {
+    bindToAccount.value = accountStore.isAuthenticated
   }
 })
 
@@ -113,7 +121,7 @@ const loadAccountDevices = async () => {
 
   loadingDevices.value = true
   try {
-    const response = await apiClient.getAccountDevices(accountStore.token)
+  const response = await apiClient.getAccountDevices()
     accountDevices.value = response.data || []
 
     if (accountDevices.value.length === 0) {
@@ -179,14 +187,13 @@ const registerDevice = async () => {
     // 2. 调用设备注册接口（会自动在云端创建设备）
     await apiClient.registerDevice(
       newUuid.value.trim(),
-      deviceName.value.trim(),
-      accountStore.isAuthenticated ? accountStore.token : null
+      deviceName.value.trim()
     )
 
     // 3. 如果选择绑定到账户，现在可以安全地绑定
     if (bindToAccount.value && accountStore.isAuthenticated) {
       try {
-        await apiClient.bindDeviceToAccount(accountStore.token, newUuid.value.trim())
+        await apiClient.bindDeviceToAccount(newUuid.value.trim())
       } catch (error) {
         console.warn('设备绑定失败：', error.message)
         toast.warning('设备注册成功，但绑定到账户失败')

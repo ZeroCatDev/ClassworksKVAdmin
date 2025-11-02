@@ -48,7 +48,7 @@ const loadDevices = async () => {
 
   isLoading.value = true
   try {
-    const response = await apiClient.getAccountDevices(accountStore.token)
+    const response = await apiClient.getAccountDevices()
     devices.value = response.data || []
   } catch (error) {
     toast.error('加载设备列表失败：' + error.message)
@@ -68,7 +68,7 @@ const unbindDevice = async () => {
   if (!currentDevice.value) return
 
   try {
-    await apiClient.unbindDeviceFromAccount(accountStore.token, currentDevice.value.uuid)
+    await apiClient.unbindDeviceFromAccount(currentDevice.value.uuid)
     toast.success('设备已解绑')
     showDeleteDialog.value = false
     currentDevice.value = null

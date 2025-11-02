@@ -108,9 +108,9 @@ const checkDeviceAndLoad = async () => {
   try {
     deviceInfo.value = await apiClient.getDeviceInfo(uuid)
     console.log(deviceInfo.value)
-    console.log(accountStore)
+    console.log(accountStore.profile)
     // 检查设备是否绑定到当前账户
-    if (!deviceInfo.value.account.id || deviceInfo.value.account.id !== accountStore.profile.id) {
+    if (!deviceInfo.value.account || !deviceInfo.value.account.id || deviceInfo.value.account.id !== accountStore.profile.id) {
       toast.error('该设备未绑定到您的账户', {
         description: '请先在主页绑定设备到您的账户'
       })

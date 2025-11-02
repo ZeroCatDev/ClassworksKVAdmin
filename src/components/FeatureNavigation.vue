@@ -34,15 +34,6 @@ const features = [
     iconColor: 'text-purple-600 dark:text-purple-400',
   },
   {
-    title: 'KV 管理器',
-    description: '浏览和管理键值存储数据，支持批量操作',
-    icon: Database,
-    path: '/kv-manager',
-    color: 'from-green-500 to-emerald-500',
-    iconBg: 'bg-green-500/10',
-    iconColor: 'text-green-600 dark:text-green-400',
-  },
-  {
     title: '设备管理',
     description: '管理您账户下的所有设备，修改名称和密码',
     icon: Layers,
