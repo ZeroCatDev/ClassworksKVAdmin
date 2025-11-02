@@ -15,18 +15,27 @@ class ApiClient {
     const data = options.body
     const params = options.params
 
-    // 通过 axios 实例发起请求（已内置 baseURL 与 x-site-key）
-    const result = await axiosInstance.request({
-      url: endpoint,
-      method,
-      headers,
-      data,
-      params,
-    })
+    try {
+      // 通过 axios 实例发起请求（已内置 baseURL 与 x-site-key）
+      const result = await axiosInstance.request({
+        url: endpoint,
+        method,
+        headers,
+        data,
+        params,
+      })
 
-    // axios 响应拦截器已返回 response.data，这里做空值统一
-    if (result === '' || result === undefined || result === null) return {}
-    return result
+      // axios 响应拦截器已返回 response.data，这里做空值统一
+      if (result === '' || result === undefined || result === null) return {}
+      return result
+    } catch (err) {
+      // 某些后端会在非 2xx 状态下直接返回有效数据，这里兜底返回 body
+      const resp = err?.response
+      if (resp && resp.data !== undefined) {
+        return resp.data
+      }
+      throw err
+    }
   }
 
   // 带认证的fetch

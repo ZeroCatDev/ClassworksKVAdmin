@@ -1,615 +1,541 @@
-<template>
-  <div class="kv-manager-container">
-    <div class="header">
-      <h1>键值管理器</h1>
-      <p class="subtitle">使用 Token 访问和管理键值对数据</p>
-    </div>
-
-    <!-- Token 输入区 -->
-    <div v-if="!isTokenSet" class="token-input-section">
-      <div class="input-group">
-        <input
-          v-model="tokenInput"
-          type="text"
-          placeholder="请输入应用 Token"
-          @keypress.enter="handleSetToken"
-          class="token-input"
-        />
-        <button @click="handleSetToken" :disabled="!tokenInput.trim()" class="btn-primary">
-          确定
-        </button>
-      </div>
-      <p v-if="tokenError" class="error-msg">{{ tokenError }}</p>
-    </div>
-
-    <!-- 键值列表区 -->
-    <div v-else class="kv-list-section">
-      <div class="toolbar">
-        <div class="search-group">
-          <input
-            v-model="searchPattern"
-            type="text"
-            placeholder="搜索键名（支持通配符 *）"
-            @keypress.enter="loadKeys"
-            class="search-input"
-          />
-          <button @click="loadKeys" class="btn-secondary">搜索</button>
-        </div>
-        <div class="actions">
-          <button @click="showAddDialog = true" class="btn-primary">添加键值</button>
-          <button @click="handleLogout" class="btn-secondary">退出</button>
-        </div>
-      </div>
-
-      <!-- 加载状态 -->
-      <div v-if="loading" class="loading">加载中...</div>
-
-      <!-- 错误提示 -->
-      <div v-if="error" class="error-banner">{{ error }}</div>
-
-      <!-- 键值对表格 -->
-      <div v-if="!loading && keys.length > 0" class="table-container">
-        <table class="kv-table">
-          <thead>
-            <tr>
-              <th>键名</th>
-              <th>值</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="key in paginatedKeys" :key="key">
-              <td class="key-cell">{{ key }}</td>
-              <td class="value-cell">
-                <div v-if="loadingValues[key]" class="value-loading">加载中...</div>
-                <div v-else-if="values[key] !== undefined" class="value-content">
-                  <pre>{{ formatValue(values[key]) }}</pre>
-                </div>
-                <button v-else @click="loadValue(key)" class="btn-link">查看</button>
-              </td>
-              <td class="actions-cell">
-                <button @click="editKey(key)" class="btn-edit">编辑</button>
-                <button @click="deleteKey(key)" class="btn-delete">删除</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- 分页控件 -->
-        <div class="pagination">
-          <button
-            @click="currentPage--"
-            :disabled="currentPage === 1"
-            class="btn-secondary"
-          >
-            上一页
-          </button>
-          <span class="page-info">
-            第 {{ currentPage }} / {{ totalPages }} 页（共 {{ keys.length }} 条）
-          </span>
-          <button
-            @click="currentPage++"
-            :disabled="currentPage === totalPages"
-            class="btn-secondary"
-          >
-            下一页
-          </button>
-        </div>
-      </div>
-
-      <!-- 空状态 -->
-      <div v-if="!loading && keys.length === 0" class="empty-state">
-        <p>暂无键值对数据</p>
-      </div>
-    </div>
-
-    <!-- 添加/编辑对话框 -->
-    <div v-if="showAddDialog || editingKey" class="dialog-overlay" @click.self="closeDialog">
-      <div class="dialog">
-        <h2>{{ editingKey ? '编辑键值' : '添加键值' }}</h2>
-        <div class="form-group">
-          <label>键名</label>
-          <input
-            v-model="dialogKey"
-            type="text"
-            :disabled="!!editingKey"
-            placeholder="请输入键名"
-            class="form-input"
-          />
-        </div>
-        <div class="form-group">
-          <label>值（JSON 格式）</label>
-          <textarea
-            v-model="dialogValue"
-            rows="8"
-            placeholder='例如: "字符串" 或 {"key": "value"}'
-            class="form-textarea"
-          ></textarea>
-        </div>
-        <p v-if="dialogError" class="error-msg">{{ dialogError }}</p>
-        <div class="dialog-actions">
-          <button @click="closeDialog" class="btn-secondary">取消</button>
-          <button @click="saveKeyValue" class="btn-primary">保存</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { apiClient } from '../lib/api'
+import { apiClient } from '@/lib/api'
+import { deviceStore } from '@/lib/deviceStore'
+import { toast } from 'vue-sonner'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Table, TableBody, TableCaption, TableCell, TableEmpty, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Download, Upload, Trash2, Plus, Loader2, Search, RefreshCw, Copy, Edit, Check, X, Key, ShieldCheck, Database } from 'lucide-vue-next'
 
-const tokenInput = ref('')
-const isTokenSet = ref(false)
-const currentToken = ref('')
-const tokenError = ref('')
+// Token 与自动授权
+const token = ref(localStorage.getItem('kv_token') || '')
+const isTokenSet = computed(() => !!token.value)
+const autoAuth = ref({
+  namespace: localStorage.getItem('kv_namespace') || '',
+  password: '',
+  appId: 'c0147d26d087d70113a21de967c452c0',
+})
+const autoAuthLoading = ref(false)
+const deviceUuid = ref('')
 
-const searchPattern = ref('*')
+// 列表与筛选（仅本地过滤）
+const searchText = ref('') // 关键字过滤（本地）
+const loading = ref(false)
+const error = ref('')
 const keys = ref([])
 const values = ref({})
 const loadingValues = ref({})
-const loading = ref(false)
-const error = ref('')
+const specificKey = ref('') // 加载特定项
 
-const currentPage = ref(1)
+// 选择与分页
+const selected = ref(new Set())
+const page = ref(1)
 const pageSize = ref(10)
-
-const showAddDialog = ref(false)
-const editingKey = ref('')
-const dialogKey = ref('')
-const dialogValue = ref('')
-const dialogError = ref('')
-
-const totalPages = computed(() => Math.ceil(keys.value.length / pageSize.value))
-
-const paginatedKeys = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return keys.value.slice(start, end)
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredKeys.value.length / pageSize.value)))
+const pagedKeys = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return filteredKeys.value.slice(start, start + pageSize.value)
 })
 
-const handleSetToken = async () => {
-  tokenError.value = ''
-  const token = tokenInput.value.trim()
+// 过滤后的 keys
+const filteredKeys = computed(() => {
+  if (!searchText.value.trim()) return keys.value
+  const kw = searchText.value.toLowerCase()
+  return keys.value.filter(k => k.toLowerCase().includes(kw))
+})
 
-  if (!token) {
-    tokenError.value = '请输入 Token'
+// 对话框：新增/编辑
+const editOpen = ref(false)
+const isEditing = ref(false)
+const formKey = ref('')
+const formValue = ref('')
+const formError = ref('')
+
+// 预填 namespace：尝试从设备信息中获取
+onMounted(async () => {
+  deviceUuid.value = deviceStore.getDeviceUuid() || ''
+  if (deviceUuid.value) {
+    try {
+      const info = await apiClient.getDeviceInfo(deviceUuid.value)
+      const ns = info.device?.namespace || info.namespace
+      if (ns && !autoAuth.value.namespace) {
+        autoAuth.value.namespace = ns
+        localStorage.setItem('kv_namespace', ns)
+      }
+    } catch {
+      // 忽略
+    }
+  }
+  if (isTokenSet.value) {
+    await loadKeys()
+  }
+})
+
+// 自动授权获取 Token
+const acquireToken = async () => {
+  if (!autoAuth.value.namespace) {
+    toast.error('请输入命名空间')
     return
   }
-
-  // 验证 token 是否有效
+  autoAuthLoading.value = true
   try {
-    await apiClient.getKVKeys(token, '*')
-    currentToken.value = token
-    isTokenSet.value = true
-    loadKeys()
-  } catch (err) {
-    tokenError.value = '无效的 Token 或无权限访问'
+    const res = await apiClient.getTokenByNamespace(
+      autoAuth.value.namespace,
+      autoAuth.value.password || undefined,
+      autoAuth.value.appId
+    )
+    if (res?.token) {
+      token.value = res.token
+      localStorage.setItem('kv_token', token.value)
+      if (autoAuth.value.namespace) localStorage.setItem('kv_namespace', autoAuth.value.namespace)
+      if (autoAuth.value.appId) localStorage.setItem('kv_appId', autoAuth.value.appId)
+      toast.success('已获取 Token')
+      await loadKeys()
+    } else {
+      toast.error('未返回 Token')
+    }
+  } catch (e) {
+    toast.error('获取 Token 失败：' + e.message)
+  } finally {
+    autoAuthLoading.value = false
   }
 }
 
+// 手动设置/清除 Token
+const clearToken = () => {
+  token.value = ''
+  localStorage.removeItem('kv_token')
+  keys.value = []
+  values.value = {}
+}
+
+// 加载全部 keys 列表（服务器不支持 pattern，本地过滤）
 const loadKeys = async () => {
+  if (!token.value) {
+    toast.error('请先获取或填写 Token')
+    return
+  }
   loading.value = true
   error.value = ''
-
   try {
-    const response = await apiClient.getKVKeys(currentToken.value, searchPattern.value)
-    keys.value = response.keys || []
-    currentPage.value = 1
+    const res = await apiClient.getKVKeys(token.value)
+    keys.value = Array.isArray(res) ? res : (res?.keys || [])
+    page.value = 1
     values.value = {}
-  } catch (err) {
-    error.value = err.message || '加载键名失败'
+  } catch (e) {
+    error.value = e.message || '加载键名失败'
   } finally {
     loading.value = false
   }
 }
 
-const loadValue = async (key) => {
-  loadingValues.value[key] = true
-
-  try {
-    const response = await apiClient.getKVItem(currentToken.value, key)
-    values.value[key] = response.value
-  } catch (err) {
-    error.value = `加载键 "${key}" 的值失败: ${err.message}`
-  } finally {
-    delete loadingValues.value[key]
-  }
-}
-
-const formatValue = (value) => {
-  if (typeof value === 'string') {
-    return value
-  }
-  return JSON.stringify(value, null, 2)
-}
-
-const editKey = async (key) => {
-  editingKey.value = key
-  dialogKey.value = key
-  dialogError.value = ''
-
-  // 加载值
-  try {
-    const response = await apiClient.getKVItem(currentToken.value, key)
-    dialogValue.value = formatValue(response.value)
-  } catch (err) {
-    dialogError.value = '加载值失败'
-  }
-}
-
-const saveKeyValue = async () => {
-  dialogError.value = ''
-
-  const key = dialogKey.value.trim()
-  const valueStr = dialogValue.value.trim()
-
+// 加载指定 key（将其加入列表并加载值）
+const loadSpecificKey = async () => {
+  const key = (specificKey.value || '').trim()
   if (!key) {
-    dialogError.value = '请输入键名'
+    toast.error('请输入要加载的键名')
     return
   }
-
-  if (!valueStr) {
-    dialogError.value = '请输入值'
+  if (!token.value) {
+    toast.error('请先获取或填写 Token')
     return
   }
+  try {
+    const res = await apiClient.getKVItem(token.value, key)
+    const val = (res && Object.prototype.hasOwnProperty.call(res, 'value')) ? res.value : res
+    if (!keys.value.includes(key)) {
+      keys.value.unshift(key)
+      page.value = 1
+    }
+    values.value[key] = val
+    toast.success('已加载指定键')
+    // 直接打开该项的编辑对话框
+    await openEdit(key)
+  } catch (e) {
+    toast.error('加载指定键失败：' + e.message)
+  }
+}
+// 打开新增/编辑对话框
+const openCreate = () => {
+  isEditing.value = false
+  formKey.value = ''
+  formValue.value = ''
+  formError.value = ''
+  editOpen.value = true
+}
+const openEdit = async (key) => {
+  isEditing.value = true
+  formKey.value = key
+  formError.value = ''
+  editOpen.value = true
+  // 预加载当前值
+  try {
+    const res = await apiClient.getKVItem(token.value, key)
+    const v = (res && Object.prototype.hasOwnProperty.call(res, 'value')) ? res.value : res
+    formValue.value = typeof v === 'string' ? v : JSON.stringify(v, null, 2)
+  } catch (e) {
+    formValue.value = ''
+    toast.error('加载值失败：' + e.message)
+  }
+}
 
-  // 解析 JSON
+// 保存键值
+const saving = ref(false)
+const saveKeyValue = async () => {
+  formError.value = ''
+  const key = (formKey.value || '').trim()
+  const raw = (formValue.value || '').trim()
+  if (!key) return (formError.value = '请输入键名')
+  if (!raw) return (formError.value = '请输入值（可为JSON或字符串）')
+
   let value
   try {
-    value = JSON.parse(valueStr)
-  } catch (err) {
-    dialogError.value = '值必须是有效的 JSON 格式'
-    return
+    value = JSON.parse(raw)
+  } catch {
+    value = raw // 允许纯字符串
   }
 
+
+  saving.value = true
   try {
-    await apiClient.setKVItem(currentToken.value, key, value)
-    closeDialog()
-    loadKeys()
-  } catch (err) {
-    dialogError.value = err.message || '保存失败'
+    await apiClient.setKVItem(token.value, key, value)
+    toast.success(isEditing.value ? '已保存修改' : '已创建键值')
+    editOpen.value = false
+    await loadKeys()
+  } catch (e) {
+    formError.value = e.message || '保存失败'
+  } finally {
+    saving.value = false
   }
 }
 
+// 删除单个
 const deleteKey = async (key) => {
-  if (!confirm(`确定要删除键 "${key}" 吗？`)) {
+  if (!confirm(`确定删除键 “${key}” 吗？`)) return
+  try {
+    await apiClient.deleteKVItem(token.value, key)
+    toast.success('已删除')
+    await loadKeys()
+  } catch (e) {
+    toast.error('删除失败：' + e.message)
+  }
+}
+
+// 批量删除
+const bulkDeleting = ref(false)
+const bulkDelete = async () => {
+  if (selected.value.size === 0) return
+  if (!confirm(`确定删除选中的 ${selected.value.size} 个键吗？`)) return
+  bulkDeleting.value = true
+  try {
+    const toDelete = Array.from(selected.value)
+    for (const k of toDelete) {
+      await apiClient.deleteKVItem(token.value, k)
+    }
+    toast.success('批量删除完成')
+    selected.value.clear()
+    await loadKeys()
+  } catch (e) {
+    toast.error('批量删除失败：' + e.message)
+  } finally {
+    bulkDeleting.value = false
+  }
+}
+
+// 导出与导入
+const exportAll = async () => {
+  if (!isTokenSet.value) return
+  // 尝试加载所有值
+  const data = {}
+  for (const k of keys.value) {
+    try {
+      const res = await apiClient.getKVItem(token.value, k)
+      const val = (res && Object.prototype.hasOwnProperty.call(res, 'value')) ? res.value : res
+      data[k] = val
+    } catch {
+      // 忽略单项失败
+    }
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `kv-export-${Date.now()}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const importOpen = ref(false)
+const importJson = ref('')
+const importError = ref('')
+const importing = ref(false)
+const startImport = () => {
+  importJson.value = ''
+  importError.value = ''
+  importOpen.value = true
+}
+const doImport = async () => {
+  importError.value = ''
+  let parsed
+  try {
+    parsed = JSON.parse(importJson.value || '{}')
+  } catch {
+    importError.value = 'JSON 无效'
     return
   }
-
+  importing.value = true
   try {
-    await apiClient.deleteKVItem(currentToken.value, key)
-    loadKeys()
-  } catch (err) {
-    error.value = `删除键 "${key}" 失败: ${err.message}`
+    for (const [k, v] of Object.entries(parsed)) {
+      await apiClient.setKVItem(token.value, k, v)
+    }
+    toast.success('导入完成')
+    importOpen.value = false
+    await loadKeys()
+  } catch (e) {
+    importError.value = e.message || '导入失败'
+  } finally {
+    importing.value = false
   }
 }
 
-const closeDialog = () => {
-  showAddDialog.value = false
-  editingKey.value = ''
-  dialogKey.value = ''
-  dialogValue.value = ''
-  dialogError.value = ''
+// 工具函数
+const previewValue = (v) => {
+  if (v === undefined) return '点击查看'
+  try {
+    return typeof v === 'string' ? v : JSON.stringify(v, null, 2)
+  } catch { return String(v) }
 }
-
-const handleLogout = () => {
-  if (confirm('确定要退出吗？')) {
-    isTokenSet.value = false
-    currentToken.value = ''
-    tokenInput.value = ''
-    keys.value = []
-    values.value = {}
-  }
+const copy = async (text) => {
+  try { await navigator.clipboard.writeText(text); toast.success('已复制') } catch { toast.error('复制失败') }
 }
 </script>
 
-<style scoped>
-.kv-manager-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-}
+<template>
+  <div class="min-h-screen bg-background">
+    <!-- Header -->
+    <div class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
+      <div class="container mx-auto px-6 py-4">
+        <div class="flex items-center gap-3">
+          <Database class="h-6 w-6" />
+          <div>
+            <h1 class="text-2xl font-bold">KV 数据管理器</h1>
+            <p class="text-sm text-muted-foreground">自动授权获取 Token，使用现代表格进行数据管理</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-.header {
-  text-align: center;
-  margin-bottom: 3rem;
-}
+    <div class="container mx-auto px-6 py-6 max-w-7xl space-y-6">
+      <!-- 自动授权 / Token 区域 -->
+      <Card>
+        <CardHeader>
+          <CardTitle class="flex items-center gap-2">
+            <ShieldCheck class="h-5 w-5" /> 自动授权 / Token
+          </CardTitle>
+          <CardDescription>通过命名空间快速获取 Token，或手动填写 Token</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="space-y-2">
+              <Label for="ns">命名空间</Label>
+              <Input id="ns" v-model="autoAuth.namespace" placeholder="例如: class-2024-1" />
+            </div>
+            <div class="space-y-2">
+              <Label for="pwd">授权密码（可选）</Label>
+              <Input id="pwd" type="password" v-model="autoAuth.password" placeholder="留空表示无密码" />
+            </div>
+            <div class="space-y-2">
+              <Label for="appid">App ID</Label>
+              <Input id="appid" disabled v-model="autoAuth.appId" placeholder="应用标识符" />
+            </div>
+          </div>
 
-.header h1 {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
+          <div class="flex flex-wrap items-center gap-2">
+            <Button @click="acquireToken" :disabled="autoAuthLoading">
+              <Loader2 v-if="autoAuthLoading" class="mr-2 h-4 w-4 animate-spin" />
+              <Key v-else class="mr-2 h-4 w-4" />
+              自动授权获取 Token
+            </Button>
+            <div class="flex-1" />
+            <div class="flex items-center gap-2 min-w-[280px]">
+              <Input v-model="token" placeholder="或手动粘贴 Token" />
+              <Button variant="outline" @click="clearToken" :disabled="!isTokenSet">清除</Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-.subtitle {
-  color: #666;
-}
+      <!-- 工具栏 -->
+      <Card>
+        <CardContent class="py-4">
+          <div class="flex flex-col md:flex-row gap-3 md:items-center">
+            <div class="flex items-center gap-2 md:w-[700px] w-full flex-wrap">
+              <div class="relative flex-1">
+                <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input class="pl-8" v-model="searchText" placeholder="本地过滤关键字" />
+              </div>
+              <Button variant="outline" @click="loadKeys" :disabled="!isTokenSet">
+                <RefreshCw class="h-4 w-4 mr-2" /> 刷新
+              </Button>
+              <div class="flex items-center gap-2 min-w-[300px]">
+                <Input v-model="specificKey" placeholder="输入完整键名（加载单项）" />
+                <Button variant="outline" @click="loadSpecificKey" :disabled="!isTokenSet || !specificKey.trim()">加载项</Button>
+              </div>
+            </div>
+            <div class="md:ml-auto flex items-center gap-2">
+              <Button variant="outline" @click="startImport" :disabled="!isTokenSet">
+                <Upload class="h-4 w-4 mr-2" /> 导入
+              </Button>
+              <Button variant="outline" @click="exportAll" :disabled="!isTokenSet || keys.length===0">
+                <Download class="h-4 w-4 mr-2" /> 导出
+              </Button>
+              <Separator orientation="vertical" class="h-6" />
+              <Button variant="secondary" @click="openCreate" :disabled="!isTokenSet">
+                <Plus class="h-4 w-4 mr-2" /> 新建
+              </Button>
+              <Button variant="destructive" @click="bulkDelete" :disabled="!isTokenSet || selected.size===0 || bulkDeleting">
+                <Loader2 v-if="bulkDeleting" class="mr-2 h-4 w-4 animate-spin" />
+                <Trash2 v-else class="h-4 w-4 mr-2" /> 删除所选
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-.token-input-section {
-  max-width: 500px;
-  margin: 0 auto;
-  padding: 2rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
+      <!-- 列表 -->
+      <Card>
+        <CardHeader>
+          <CardTitle>键值列表</CardTitle>
+          <CardDescription>
+            共 {{ filteredKeys.length }} 项
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div v-if="error" class="text-sm text-red-500 mb-3">{{ error }}</div>
+          <div v-if="loading" class="py-10 text-center text-muted-foreground">加载中...</div>
+          <div v-else>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead class="w-10">
+                    <Checkbox :checked="selected.size>0 && selected.size===pagedKeys.length" :indeterminate="selected.size>0 && selected.size<pagedKeys.length" @update:checked="val => { if(val){ pagedKeys.forEach(k=>selected.add(k)) } else { pagedKeys.forEach(k=>selected.delete(k)) } }" />
+                  </TableHead>
+                  <TableHead class="min-w-[260px]">键名</TableHead>
+                  <TableHead>值预览</TableHead>
+                  <TableHead class="w-[180px]">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="k in pagedKeys" :key="k">
+                  <TableCell>
+                    <Checkbox :checked="selected.has(k)" @update:checked="val => { val ? selected.add(k) : selected.delete(k) }" />
+                  </TableCell>
+                  <TableCell
+                    class="font-mono text-sm break-all cursor-pointer hover:underline"
+                    @click="openEdit(k)"
+                    title="点击查看/编辑"
+                  >
+                    {{ k }}
+                  </TableCell>
+                  <TableCell>
+                    <div
+                      class="text-xs whitespace-pre-wrap max-h-40 overflow-auto rounded-md bg-muted p-2 cursor-pointer hover:bg-muted/70 transition-colors"
+                      @click="openEdit(k)"
+                      title="点击查看/编辑"
+                    >
+                      {{ previewValue(values[k]) }}
+                    </div>
+                  </TableCell>
+                  <TableCell class="space-x-1 whitespace-nowrap">
+                    <Button size="sm" variant="outline" @click="copy(k)"><Copy class="h-3.5 w-3.5 mr-1" />复制键</Button>
+                    <Button size="sm" variant="outline" @click="openEdit(k)"><Edit class="h-3.5 w-3.5 mr-1" />编辑</Button>
+                    <Button size="sm" variant="destructive" @click="deleteKey(k)"><Trash2 class="h-3.5 w-3.5 mr-1" />删除</Button>
+                  </TableCell>
+                </TableRow>
+                <TableRow v-if="!pagedKeys.length">
+                  <TableCell colspan="4" class="text-center text-muted-foreground py-10">暂无数据</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
 
-.input-group {
-  display: flex;
-  gap: 0.5rem;
-}
+            <!-- 分页 -->
+            <div class="flex items-center justify-between mt-4 text-sm">
+              <div class="flex items-center gap-2">
+                <span>每页</span>
+                <select v-model.number="pageSize" class="h-9 w-[80px] rounded-md border border-input bg-background px-2">
+                  <option :value="10">10</option>
+                  <option :value="20">20</option>
+                  <option :value="50">50</option>
+                </select>
+                <span class="text-muted-foreground">共 {{ totalPages }} 页</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <Button variant="outline" :disabled="page===1" @click="page=Math.max(1,page-1)">上一页</Button>
+                <span>第 {{ page }} / {{ totalPages }} 页</span>
+                <Button variant="outline" :disabled="page===totalPages" @click="page=Math.min(totalPages,page+1)">下一页</Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
 
-.token-input {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
+    <!-- 新增/编辑对话框 -->
+    <Dialog :open="editOpen" @update:open="val => editOpen = val">
+      <DialogContent class="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{{ isEditing ? '编辑键值' : '新增键值' }}</DialogTitle>
+          <DialogDescription>支持 JSON 或纯文本，JSON 将自动格式化保存</DialogDescription>
+        </DialogHeader>
+        <div class="space-y-3 py-2">
+          <div class="space-y-1">
+            <Label for="kv-key">键名</Label>
+            <Input id="kv-key" v-model="formKey" :disabled="isEditing" placeholder="请输入键名" />
+          </div>
+          <div class="space-y-1">
+            <Label for="kv-val">值（JSON 或文本）</Label>
+            <textarea id="kv-val" v-model="formValue" rows="10" class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"></textarea>
+            <p v-if="formError" class="text-sm text-red-500">{{ formError }}</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="editOpen=false" :disabled="saving">取消</Button>
+          <Button @click="saveKeyValue" :disabled="saving">
+            <Loader2 v-if="saving" class="mr-2 h-4 w-4 animate-spin" />
+            保存
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
-.token-input:focus {
-  outline: none;
-  border-color: #007bff;
-}
+    <!-- 导入对话框 -->
+    <Dialog :open="importOpen" @update:open="val => importOpen = val">
+      <DialogContent class="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>导入 JSON</DialogTitle>
+          <DialogDescription>JSON 对象的每个键会写入为一个 KV 项</DialogDescription>
+        </DialogHeader>
+        <div class="space-y-3 py-2">
+          <textarea v-model="importJson" rows="12" class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono" placeholder='{"key":"value"}'></textarea>
+          <p v-if="importError" class="text-sm text-red-500">{{ importError }}</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="importOpen=false" :disabled="importing">取消</Button>
+          <Button @click="doImport" :disabled="importing">
+            <Loader2 v-if="importing" class="mr-2 h-4 w-4 animate-spin" />
+            开始导入
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
+</template>
 
-.kv-list-section {
-  width: 100%;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.search-group {
-  display: flex;
-  gap: 0.5rem;
-  flex: 1;
-  min-width: 300px;
-}
-
-.search-input {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-primary {
-  padding: 0.75rem 1.5rem;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #0056b3;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  padding: 0.5rem 1rem;
-  background: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #545b62;
-}
-
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-link {
-  padding: 0.25rem 0.5rem;
-  background: none;
-  color: #007bff;
-  border: none;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.btn-edit {
-  padding: 0.25rem 0.75rem;
-  background: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 0.5rem;
-}
-
-.btn-edit:hover {
-  background: #218838;
-}
-
-.btn-delete {
-  padding: 0.25rem 0.75rem;
-  background: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-delete:hover {
-  background: #c82333;
-}
-
-.loading {
-  text-align: center;
-  padding: 2rem;
-  color: #666;
-}
-
-.error-msg {
-  color: #dc3545;
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.error-banner {
-  background: #f8d7da;
-  color: #721c24;
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-}
-
-.table-container {
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.kv-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.kv-table th,
-.kv-table td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.kv-table th {
-  background: #f8f9fa;
-  font-weight: 600;
-}
-
-.key-cell {
-  font-family: monospace;
-  font-weight: 500;
-}
-
-.value-cell {
-  max-width: 400px;
-}
-
-.value-content pre {
-  margin: 0;
-  padding: 0.5rem;
-  background: #f8f9fa;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  overflow-x: auto;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.value-loading {
-  color: #666;
-  font-style: italic;
-}
-
-.actions-cell {
-  white-space: nowrap;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: #f8f9fa;
-}
-
-.page-info {
-  color: #666;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 4rem 2rem;
-  color: #666;
-}
-
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.dialog {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  min-width: 500px;
-  max-width: 600px;
-}
-
-.dialog h2 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-.form-input,
-.form-textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-family: inherit;
-}
-
-.form-textarea {
-  font-family: monospace;
-  resize: vertical;
-}
-
-.form-input:focus,
-.form-textarea:focus {
-  outline: none;
-  border-color: #007bff;
-}
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1.5rem;
-}
-</style>
+<style scoped></style>
