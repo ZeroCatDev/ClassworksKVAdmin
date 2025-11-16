@@ -1,13 +1,13 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { useAccountStore } from '@/stores/account'
-import { apiClient } from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Edit } from 'lucide-vue-next'
-import { toast } from 'vue-sonner'
+import {ref, computed} from 'vue'
+import {useAccountStore} from '@/stores/account'
+import {apiClient} from '@/lib/api'
+import {Button} from '@/components/ui/button'
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
+import {Input} from '@/components/ui/input'
+import {Label} from '@/components/ui/label'
+import {Edit} from 'lucide-vue-next'
+import {toast} from 'vue-sonner'
 
 
 const props = defineProps({
@@ -44,7 +44,6 @@ const isOpen = computed({
 })
 
 
-
 const updateDeviceName = async () => {
   if (!deviceName.value.trim()) {
     toast.error('请输入设备名称')
@@ -54,9 +53,9 @@ const updateDeviceName = async () => {
   isSubmitting.value = true
   try {
     await apiClient.setDeviceName(
-      props.deviceUuid,
-      deviceName.value.trim(),
-      accountStore.isAuthenticated ? accountStore.token : null
+        props.deviceUuid,
+        deviceName.value.trim(),
+        accountStore.isAuthenticated ? accountStore.token : null
     )
 
     toast.success('设备名称已更新')
@@ -76,7 +75,7 @@ const updateDeviceName = async () => {
       <DialogHeader>
         <DialogTitle>
           <div class="flex items-center gap-2">
-            <Edit class="h-5 w-5" />
+            <Edit class="h-5 w-5"/>
             编辑设备名称
           </div>
         </DialogTitle>
@@ -89,10 +88,10 @@ const updateDeviceName = async () => {
         <div class="space-y-2">
           <Label for="deviceName">设备名称</Label>
           <Input
-            id="deviceName"
-            v-model="deviceName"
-            placeholder="输入设备名称"
-            @keyup.enter="updateDeviceName"
+              id="deviceName"
+              v-model="deviceName"
+              placeholder="输入设备名称"
+              @keyup.enter="updateDeviceName"
           />
         </div>
 
@@ -100,10 +99,10 @@ const updateDeviceName = async () => {
       </div>
 
       <DialogFooter>
-        <Button variant="outline" @click="isOpen = false" :disabled="isSubmitting">
+        <Button :disabled="isSubmitting" variant="outline" @click="isOpen = false">
           取消
         </Button>
-        <Button @click="updateDeviceName" :disabled="isSubmitting || !deviceName.trim()">
+        <Button :disabled="isSubmitting || !deviceName.trim()" @click="updateDeviceName">
           {{ isSubmitting ? '更新中...' : '确认' }}
         </Button>
       </DialogFooter>

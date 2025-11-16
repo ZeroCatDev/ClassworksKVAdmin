@@ -1,18 +1,18 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useAccountStore } from '@/stores/account'
-import { deviceStore, generateUUID } from '@/lib/deviceStore'
-import { apiClient } from '@/lib/api'
-import { Button } from '@/components/ui/button'
+import {ref, computed, watch, onMounted, onUnmounted} from 'vue'
+import {useAccountStore} from '@/stores/account'
+import {deviceStore, generateUUID} from '@/lib/deviceStore'
+import {apiClient} from '@/lib/api'
+import {Button} from '@/components/ui/button'
 import LoginDialog from '@/components/LoginDialog.vue'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Shuffle, Download, Plus, AlertTriangle } from 'lucide-vue-next'
-import { toast } from 'vue-sonner'
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
+import {Input} from '@/components/ui/input'
+import {Label} from '@/components/ui/label'
+import {Separator} from '@/components/ui/separator'
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
+import {Checkbox} from '@/components/ui/checkbox'
+import {Shuffle, Download, Plus, AlertTriangle} from 'lucide-vue-next'
+import {toast} from 'vue-sonner'
 
 const props = defineProps({
   modelValue: {
@@ -94,7 +94,7 @@ const generateRandomUuid = () => {
 }
 
 // 处理打开登录对话框
- const handleOpenLogin = () => {
+const handleOpenLogin = () => {
   showLoginDialog.value = true
 }
 
@@ -121,7 +121,7 @@ const loadAccountDevices = async () => {
 
   loadingDevices.value = true
   try {
-  const response = await apiClient.getAccountDevices()
+    const response = await apiClient.getAccountDevices()
     accountDevices.value = response.data || []
 
     if (accountDevices.value.length === 0) {
@@ -138,7 +138,7 @@ const loadAccountDevices = async () => {
 const loadDevice = (device) => {
   deviceStore.setDeviceUuid(device.uuid)
   // 写入历史
-  deviceStore.addDeviceToHistory({ uuid: device.uuid, name: device.name })
+  deviceStore.addDeviceToHistory({uuid: device.uuid, name: device.name})
   isOpen.value = false
   emit('confirm')
   resetForm()
@@ -159,7 +159,7 @@ const loadByUuid = () => {
     return
   }
   deviceStore.setDeviceUuid(id)
-  deviceStore.addDeviceToHistory({ uuid: id })
+  deviceStore.addDeviceToHistory({uuid: id})
   isOpen.value = false
   emit('confirm')
   resetForm()
@@ -182,12 +182,12 @@ const registerDevice = async () => {
     // 1. 保存UUID到本地
     deviceStore.setDeviceUuid(newUuid.value.trim())
     // 写入历史
-    deviceStore.addDeviceToHistory({ uuid: newUuid.value.trim(), name: deviceName.value.trim() })
+    deviceStore.addDeviceToHistory({uuid: newUuid.value.trim(), name: deviceName.value.trim()})
 
     // 2. 调用设备注册接口（会自动在云端创建设备）
     await apiClient.registerDevice(
-      newUuid.value.trim(),
-      deviceName.value.trim()
+        newUuid.value.trim(),
+        deviceName.value.trim()
     )
 
     // 3. 如果选择绑定到账户，现在可以安全地绑定
@@ -206,8 +206,8 @@ const registerDevice = async () => {
     resetForm()
 
     const message = bindToAccount.value
-      ? '设备已注册并绑定到您的账户'
-      : '设备已注册'
+        ? '设备已注册并绑定到您的账户'
+        : '设备已注册'
     toast.success(message)
   } catch (error) {
     toast.error('注册失败：' + error.message)
@@ -261,8 +261,8 @@ const loadHistoryDevices = () => {
 
 <template>
   <Dialog
-    v-model:open="isOpen"
-    @update:open="(val) => !val && (props.required ? isOpen = true : handleClose())">
+      v-model:open="isOpen"
+      @update:open="(val) => !val && (props.required ? isOpen = true : handleClose())">
     <DialogContent class="max-w-2xl">
       <DialogHeader>
         <DialogTitle>设备管理</DialogTitle>
@@ -271,9 +271,10 @@ const loadHistoryDevices = () => {
         </DialogDescription>
 
         <!-- 必需模式的提示 -->
-        <div v-if="props.required" class="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900">
+        <div v-if="props.required"
+             class="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900">
           <div class="flex items-start gap-2">
-            <AlertTriangle class="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <AlertTriangle class="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5"/>
             <div>
               <p class="text-sm font-medium text-amber-900 dark:text-amber-100">请先注册或加载设备</p>
               <p class="text-sm text-amber-700 dark:text-amber-300 mt-1">
@@ -287,20 +288,20 @@ const loadHistoryDevices = () => {
       <Tabs v-model="activeTab" class="w-full">
         <TabsList class="grid w-full grid-cols-3">
           <TabsTrigger value="load">
-            <Download class="h-4 w-4 mr-2" />
+            <Download class="h-4 w-4 mr-2"/>
             加载设备
           </TabsTrigger>
           <TabsTrigger value="history">
             历史记录
           </TabsTrigger>
           <TabsTrigger value="register">
-            <Plus class="h-4 w-4 mr-2" />
+            <Plus class="h-4 w-4 mr-2"/>
             注册设备
           </TabsTrigger>
         </TabsList>
 
         <!-- 加载设备选项卡 -->
-        <TabsContent value="load" class="space-y-4 mt-4">
+        <TabsContent class="space-y-4 mt-4" value="load">
           <!-- 账户设备区域 -->
           <div class="space-y-3">
             <div v-if="!accountStore.isAuthenticated" class="text-center py-6">
@@ -318,17 +319,17 @@ const loadHistoryDevices = () => {
               <div v-else-if="accountDevices.length === 0" class="text-center py-6">
                 <p class="text-muted-foreground mb-3">您的账户暂未绑定任何设备</p>
                 <Button variant="outline" @click="activeTab = 'register'">
-                  <Plus class="h-4 w-4 mr-2" />
+                  <Plus class="h-4 w-4 mr-2"/>
                   注册新设备
                 </Button>
               </div>
 
               <div v-else class="space-y-2 max-h-96 overflow-y-auto">
                 <div
-                  v-for="device in accountDevices"
-                  :key="device.uuid"
-                  class="p-4 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
-                  @click="loadDevice(device)"
+                    v-for="device in accountDevices"
+                    :key="device.uuid"
+                    class="p-4 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
+                    @click="loadDevice(device)"
                 >
                   <div class="flex items-start justify-between">
                     <div class="flex-1">
@@ -343,9 +344,9 @@ const loadHistoryDevices = () => {
                       </div>
                     </div>
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      @click.stop="loadDevice(device)"
+                        size="sm"
+                        variant="ghost"
+                        @click.stop="loadDevice(device)"
                     >
                       加载
                     </Button>
@@ -355,20 +356,20 @@ const loadHistoryDevices = () => {
             </div>
           </div>
 
-          <Separator />
+          <Separator/>
 
           <!-- 手动输入 UUID 加载 -->
           <div class="space-y-2">
             <Label for="manualUuid">手动输入 UUID</Label>
             <div class="flex gap-2">
               <Input
-                id="manualUuid"
-                v-model="manualUuid"
-                placeholder="输入设备 UUID 直接加载"
-                class="flex-1"
-                @keyup.enter="loadByUuid"
+                  id="manualUuid"
+                  v-model="manualUuid"
+                  class="flex-1"
+                  placeholder="输入设备 UUID 直接加载"
+                  @keyup.enter="loadByUuid"
               />
-              <Button @click="loadByUuid" :disabled="!manualUuid.trim()">
+              <Button :disabled="!manualUuid.trim()" @click="loadByUuid">
                 加载
               </Button>
             </div>
@@ -377,25 +378,25 @@ const loadHistoryDevices = () => {
         </TabsContent>
 
         <!-- 注册设备选项卡 -->
-        <TabsContent value="register" class="space-y-4 mt-4">
+        <TabsContent class="space-y-4 mt-4" value="register">
           <div class="space-y-4">
             <!-- UUID输入 -->
             <div class="space-y-2">
               <Label for="registerUuid">设备 UUID</Label>
               <div class="flex gap-2">
                 <Input
-                  id="registerUuid"
-                  v-model="newUuid"
-                  placeholder="自动生成或手动输入UUID"
-                  class="flex-1"
+                    id="registerUuid"
+                    v-model="newUuid"
+                    class="flex-1"
+                    placeholder="自动生成或手动输入UUID"
                 />
                 <Button
-                  variant="outline"
-                  size="icon"
-                  @click="generateRandomUuid"
-                  title="生成随机UUID"
+                    size="icon"
+                    title="生成随机UUID"
+                    variant="outline"
+                    @click="generateRandomUuid"
                 >
-                  <Shuffle class="h-4 w-4" />
+                  <Shuffle class="h-4 w-4"/>
                 </Button>
               </div>
             </div>
@@ -404,33 +405,33 @@ const loadHistoryDevices = () => {
             <div class="space-y-2">
               <Label for="deviceName">* 设备名称</Label>
               <Input
-                id="deviceName"
-                v-model="deviceName"
-                placeholder="为设备设置一个易于识别的名称"
-                required
+                  id="deviceName"
+                  v-model="deviceName"
+                  placeholder="为设备设置一个易于识别的名称"
+                  required
               />
             </div>
 
-            <Separator />
+            <Separator/>
 
             <!-- 绑定到账户选项 -->
             <div class="flex items-start space-x-3 p-4 rounded-lg border">
               <Checkbox
-                id="bindToAccount"
-                v-model:checked="bindToAccount"
-                :disabled="!accountStore.isAuthenticated"
+                  id="bindToAccount"
+                  v-model:checked="bindToAccount"
+                  :disabled="!accountStore.isAuthenticated"
               />
               <div class="flex-1">
                 <label
-                  for="bindToAccount"
-                  class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    for="bindToAccount"
                 >
                   绑定到账户
                 </label>
                 <p class="text-xs text-muted-foreground mt-1">
                   {{ accountStore.isAuthenticated
-                    ? `将此设备绑定到账户 ${accountStore.userName}，绑定后可在其他设备上快速加载`
-                    : '登录后可以将设备绑定到您的账户'
+                  ? `将此设备绑定到账户 ${accountStore.userName}，绑定后可在其他设备上快速加载`
+                  : '登录后可以将设备绑定到您的账户'
                   }}
                 </p>
               </div>
@@ -439,31 +440,31 @@ const loadHistoryDevices = () => {
 
           <div class="flex justify-end gap-2 pt-2">
             <Button
-              variant="outline"
-              @click="handleClose"
-              :disabled="props.required"
-              :title="props.required ? '必须先注册设备' : '取消'"
+                :disabled="props.required"
+                :title="props.required ? '必须先注册设备' : '取消'"
+                variant="outline"
+                @click="handleClose"
             >
               取消
             </Button>
-            <Button @click="registerDevice" :disabled="!newUuid.trim() || !deviceName.trim()">
-              <Plus class="h-4 w-4 mr-2" />
+            <Button :disabled="!newUuid.trim() || !deviceName.trim()" @click="registerDevice">
+              <Plus class="h-4 w-4 mr-2"/>
               注册设备
             </Button>
           </div>
         </TabsContent>
 
         <!-- 历史设备选项卡 -->
-        <TabsContent value="history" class="space-y-4 mt-4">
+        <TabsContent class="space-y-4 mt-4" value="history">
           <div v-if="historyDevices.length === 0" class="text-center py-8 text-muted-foreground">
             暂无历史设备
           </div>
           <div v-else class="space-y-2 max-h-96 overflow-y-auto">
             <div
-              v-for="device in historyDevices"
-              :key="device.uuid"
-              class="p-4 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
-              @click="loadDevice(device)"
+                v-for="device in historyDevices"
+                :key="device.uuid"
+                class="p-4 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
+                @click="loadDevice(device)"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
@@ -478,9 +479,9 @@ const loadHistoryDevices = () => {
                   </div>
                 </div>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  @click.stop="loadDevice(device)"
+                    size="sm"
+                    variant="ghost"
+                    @click.stop="loadDevice(device)"
                 >
                   加载
                 </Button>
@@ -494,7 +495,7 @@ const loadHistoryDevices = () => {
 
   <!-- 登录对话框 -->
   <LoginDialog
-    v-model="showLoginDialog"
-    :on-success="handleLoginSuccess"
+      v-model="showLoginDialog"
+      :on-success="handleLoginSuccess"
   />
 </template>

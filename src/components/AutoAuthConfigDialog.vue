@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { apiClient } from '@/lib/api'
+import {ref, computed, watch} from 'vue'
+import {apiClient} from '@/lib/api'
 import {
   Dialog,
   DialogContent,
@@ -9,9 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import {Button} from '@/components/ui/button'
+import {Input} from '@/components/ui/input'
+import {Label} from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -19,9 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Loader2 } from 'lucide-vue-next'
-import { toast } from 'vue-sonner'
+import {Checkbox} from '@/components/ui/checkbox'
+import {Loader2} from 'lucide-vue-next'
+import {toast} from 'vue-sonner'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -51,11 +51,11 @@ const dialogTitle = computed(() => {
 
 // 设备类型选项
 const deviceTypeOptions = [
-  { value: 'teacher', label: '教师' },
-  { value: 'student', label: '学生' },
-  { value: 'classroom', label: '班级一体机' },
-  { value: 'parent', label: '家长' },
-  { value: null, label: '未指定' },
+  {value: 'teacher', label: '教师'},
+  {value: 'student', label: '学生'},
+  {value: 'classroom', label: '班级一体机'},
+  {value: 'parent', label: '家长'},
+  {value: null, label: '未指定'},
 ]
 
 // 监听对话框打开状态，重置表单
@@ -104,10 +104,10 @@ const saveConfig = async () => {
       }
 
       await apiClient.updateAutoAuthConfig(
-        props.deviceUuid,
-        props.accountToken,
-        props.config.id,
-        updates
+          props.deviceUuid,
+          props.accountToken,
+          props.config.id,
+          updates
       )
       toast.success('配置更新成功')
     } else {
@@ -122,9 +122,9 @@ const saveConfig = async () => {
       }
 
       await apiClient.createAutoAuthConfig(
-        props.deviceUuid,
-        props.accountToken,
-        config
+          props.deviceUuid,
+          props.accountToken,
+          config
       )
       toast.success('配置创建成功')
     }
@@ -159,11 +159,11 @@ const saveConfig = async () => {
             </span>
           </Label>
           <Input
-            id="password"
-            type="text"
-            v-model="formData.password"
-            :placeholder="isEditMode ? '留空表示无密码授权' : '留空表示无密码授权'"
-            autocomplete="new-password"
+              id="password"
+              v-model="formData.password"
+              :placeholder="isEditMode ? '留空表示无密码授权' : '留空表示无密码授权'"
+              autocomplete="new-password"
+              type="text"
           />
           <p class="text-xs text-muted-foreground">
             {{ isEditMode ? '留空表示设为无密码' : '设备使用此密码可以自动获取访问授权' }}
@@ -175,13 +175,13 @@ const saveConfig = async () => {
           <Label for="deviceType">设备类型</Label>
           <Select v-model="formData.deviceType">
             <SelectTrigger id="deviceType">
-              <SelectValue placeholder="选择设备类型" />
+              <SelectValue placeholder="选择设备类型"/>
             </SelectTrigger>
             <SelectContent>
               <SelectItem
-                v-for="option in deviceTypeOptions"
-                :key="option.value"
-                :value="option.value"
+                  v-for="option in deviceTypeOptions"
+                  :key="option.value"
+                  :value="option.value"
               >
                 {{ option.label }}
               </SelectItem>
@@ -195,12 +195,12 @@ const saveConfig = async () => {
         <!-- 只读权限 -->
         <div class="flex items-center space-x-2">
           <Checkbox
-            id="isReadOnly"
-            v-model="formData.isReadOnly"
+              id="isReadOnly"
+              v-model="formData.isReadOnly"
           />
           <Label
-            for="isReadOnly"
-            class="text-sm font-normal cursor-pointer"
+              class="text-sm font-normal cursor-pointer"
+              for="isReadOnly"
           >
             只读权限（仅允许读取数据，不能修改）
           </Label>
@@ -219,19 +219,19 @@ const saveConfig = async () => {
 
       <DialogFooter>
         <Button
-          type="button"
-          variant="outline"
-          @click="closeDialog"
-          :disabled="isLoading"
+            :disabled="isLoading"
+            type="button"
+            variant="outline"
+            @click="closeDialog"
         >
           取消
         </Button>
         <Button
-          type="button"
-          @click="saveConfig"
-          :disabled="isLoading"
+            :disabled="isLoading"
+            type="button"
+            @click="saveConfig"
         >
-          <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin"/>
           {{ isEditMode ? '保存' : '创建' }}
         </Button>
       </DialogFooter>

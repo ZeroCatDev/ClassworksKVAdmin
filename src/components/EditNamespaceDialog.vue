@@ -1,6 +1,6 @@
 <script setup>
-import { ref, watch } from 'vue'
-import { apiClient } from '@/lib/api'
+import {ref, watch} from 'vue'
+import {apiClient} from '@/lib/api'
 import {
   Dialog,
   DialogContent,
@@ -9,11 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Loader2 } from 'lucide-vue-next'
-import { toast } from 'vue-sonner'
+import {Button} from '@/components/ui/button'
+import {Input} from '@/components/ui/input'
+import {Label} from '@/components/ui/label'
+import {Loader2} from 'lucide-vue-next'
+import {toast} from 'vue-sonner'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -58,9 +58,9 @@ const saveNamespace = async () => {
   isLoading.value = true
   try {
     await apiClient.updateDeviceNamespace(
-      props.deviceUuid,
-      props.accountToken,
-      trimmedNamespace
+        props.deviceUuid,
+        props.accountToken,
+        trimmedNamespace
     )
     toast.success('命名空间更新成功')
     emit('success', trimmedNamespace)
@@ -96,11 +96,11 @@ const saveNamespace = async () => {
             </span>
           </Label>
           <Input
-            id="namespace"
-            type="text"
-            v-model="namespace"
-            placeholder="例如: class-2024-grade1"
-            autocomplete="off"
+              id="namespace"
+              v-model="namespace"
+              autocomplete="off"
+              placeholder="例如: class-2024-grade1"
+              type="text"
           />
           <p class="text-xs text-muted-foreground">
             命名空间用于自动授权接口，必须全局唯一
@@ -120,19 +120,19 @@ const saveNamespace = async () => {
 
       <DialogFooter>
         <Button
-          type="button"
-          variant="outline"
-          @click="closeDialog"
-          :disabled="isLoading"
+            :disabled="isLoading"
+            type="button"
+            variant="outline"
+            @click="closeDialog"
         >
           取消
         </Button>
         <Button
-          type="button"
-          @click="saveNamespace"
-          :disabled="isLoading"
+            :disabled="isLoading"
+            type="button"
+            @click="saveNamespace"
         >
-          <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin"/>
           保存
         </Button>
       </DialogFooter>

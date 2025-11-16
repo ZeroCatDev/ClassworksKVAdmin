@@ -1,18 +1,43 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { apiClient } from '@/lib/api'
-import { deviceStore } from '@/lib/deviceStore'
-import { toast } from 'vue-sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Separator } from '@/components/ui/separator'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Table, TableBody, TableCaption, TableCell, TableEmpty, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Download, Upload, Trash2, Plus, Loader2, Search, RefreshCw, Copy, Edit, Check, X, Key, ShieldCheck, Database } from 'lucide-vue-next'
+import {ref, computed, onMounted} from 'vue'
+import {apiClient} from '@/lib/api'
+import {deviceStore} from '@/lib/deviceStore'
+import {toast} from 'vue-sonner'
+import {Button} from '@/components/ui/button'
+import {Input} from '@/components/ui/input'
+import {Label} from '@/components/ui/label'
+import {Checkbox} from '@/components/ui/checkbox'
+import {Separator} from '@/components/ui/separator'
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableEmpty,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table'
+import {
+  Download,
+  Upload,
+  Trash2,
+  Plus,
+  Loader2,
+  Search,
+  RefreshCw,
+  Copy,
+  Edit,
+  Check,
+  X,
+  Key,
+  ShieldCheck,
+  Database
+} from 'lucide-vue-next'
 
 // Token 与自动授权
 const token = ref(localStorage.getItem('kv_token') || '')
@@ -87,9 +112,9 @@ const acquireToken = async () => {
   autoAuthLoading.value = true
   try {
     const res = await apiClient.getTokenByNamespace(
-      autoAuth.value.namespace,
-      autoAuth.value.password || undefined,
-      autoAuth.value.appId
+        autoAuth.value.namespace,
+        autoAuth.value.password || undefined,
+        autoAuth.value.appId
     )
     if (res?.token) {
       token.value = res.token
@@ -263,7 +288,7 @@ const exportAll = async () => {
       // 忽略单项失败
     }
   }
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'})
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -310,10 +335,17 @@ const previewValue = (v) => {
   if (v === undefined) return '点击查看'
   try {
     return typeof v === 'string' ? v : JSON.stringify(v, null, 2)
-  } catch { return String(v) }
+  } catch {
+    return String(v)
+  }
 }
 const copy = async (text) => {
-  try { await navigator.clipboard.writeText(text); toast.success('已复制') } catch { toast.error('复制失败') }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success('已复制')
+  } catch {
+    toast.error('复制失败')
+  }
 }
 </script>
 
@@ -323,7 +355,7 @@ const copy = async (text) => {
     <div class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
       <div class="container mx-auto px-6 py-4">
         <div class="flex items-center gap-3">
-          <Database class="h-6 w-6" />
+          <Database class="h-6 w-6"/>
           <div>
             <h1 class="text-2xl font-bold">KV 数据管理器</h1>
             <p class="text-sm text-muted-foreground">自动授权获取 Token，使用现代表格进行数据管理</p>
@@ -337,7 +369,8 @@ const copy = async (text) => {
       <Card>
         <CardHeader>
           <CardTitle class="flex items-center gap-2">
-            <ShieldCheck class="h-5 w-5" /> 自动授权 / Token
+            <ShieldCheck class="h-5 w-5"/>
+            自动授权 / Token
           </CardTitle>
           <CardDescription>通过命名空间快速获取 Token，或手动填写 Token</CardDescription>
         </CardHeader>
@@ -345,28 +378,28 @@ const copy = async (text) => {
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="space-y-2">
               <Label for="ns">命名空间</Label>
-              <Input id="ns" v-model="autoAuth.namespace" placeholder="例如: class-2024-1" />
+              <Input id="ns" v-model="autoAuth.namespace" placeholder="例如: class-2024-1"/>
             </div>
             <div class="space-y-2">
               <Label for="pwd">授权密码（可选）</Label>
-              <Input id="pwd" type="password" v-model="autoAuth.password" placeholder="留空表示无密码" />
+              <Input id="pwd" v-model="autoAuth.password" placeholder="留空表示无密码" type="password"/>
             </div>
             <div class="space-y-2">
               <Label for="appid">App ID</Label>
-              <Input id="appid" disabled v-model="autoAuth.appId" placeholder="应用标识符" />
+              <Input id="appid" v-model="autoAuth.appId" disabled placeholder="应用标识符"/>
             </div>
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <Button @click="acquireToken" :disabled="autoAuthLoading">
-              <Loader2 v-if="autoAuthLoading" class="mr-2 h-4 w-4 animate-spin" />
-              <Key v-else class="mr-2 h-4 w-4" />
+            <Button :disabled="autoAuthLoading" @click="acquireToken">
+              <Loader2 v-if="autoAuthLoading" class="mr-2 h-4 w-4 animate-spin"/>
+              <Key v-else class="mr-2 h-4 w-4"/>
               自动授权获取 Token
             </Button>
-            <div class="flex-1" />
+            <div class="flex-1"/>
             <div class="flex items-center gap-2 min-w-[280px]">
-              <Input v-model="token" placeholder="或手动粘贴 Token" />
-              <Button variant="outline" @click="clearToken" :disabled="!isTokenSet">清除</Button>
+              <Input v-model="token" placeholder="或手动粘贴 Token"/>
+              <Button :disabled="!isTokenSet" variant="outline" @click="clearToken">清除</Button>
             </div>
           </div>
         </CardContent>
@@ -378,31 +411,39 @@ const copy = async (text) => {
           <div class="flex flex-col md:flex-row gap-3 md:items-center">
             <div class="flex items-center gap-2 md:w-[700px] w-full flex-wrap">
               <div class="relative flex-1">
-                <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input class="pl-8" v-model="searchText" placeholder="本地过滤关键字" />
+                <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground"/>
+                <Input v-model="searchText" class="pl-8" placeholder="本地过滤关键字"/>
               </div>
-              <Button variant="outline" @click="loadKeys" :disabled="!isTokenSet">
-                <RefreshCw class="h-4 w-4 mr-2" /> 刷新
+              <Button :disabled="!isTokenSet" variant="outline" @click="loadKeys">
+                <RefreshCw class="h-4 w-4 mr-2"/>
+                刷新
               </Button>
               <div class="flex items-center gap-2 min-w-[300px]">
-                <Input v-model="specificKey" placeholder="输入完整键名（加载单项）" />
-                <Button variant="outline" @click="loadSpecificKey" :disabled="!isTokenSet || !specificKey.trim()">加载项</Button>
+                <Input v-model="specificKey" placeholder="输入完整键名（加载单项）"/>
+                <Button :disabled="!isTokenSet || !specificKey.trim()" variant="outline" @click="loadSpecificKey">
+                  加载项
+                </Button>
               </div>
             </div>
             <div class="md:ml-auto flex items-center gap-2">
-              <Button variant="outline" @click="startImport" :disabled="!isTokenSet">
-                <Upload class="h-4 w-4 mr-2" /> 导入
+              <Button :disabled="!isTokenSet" variant="outline" @click="startImport">
+                <Upload class="h-4 w-4 mr-2"/>
+                导入
               </Button>
-              <Button variant="outline" @click="exportAll" :disabled="!isTokenSet || keys.length===0">
-                <Download class="h-4 w-4 mr-2" /> 导出
+              <Button :disabled="!isTokenSet || keys.length===0" variant="outline" @click="exportAll">
+                <Download class="h-4 w-4 mr-2"/>
+                导出
               </Button>
-              <Separator orientation="vertical" class="h-6" />
-              <Button variant="secondary" @click="openCreate" :disabled="!isTokenSet">
-                <Plus class="h-4 w-4 mr-2" /> 新建
+              <Separator class="h-6" orientation="vertical"/>
+              <Button :disabled="!isTokenSet" variant="secondary" @click="openCreate">
+                <Plus class="h-4 w-4 mr-2"/>
+                新建
               </Button>
-              <Button variant="destructive" @click="bulkDelete" :disabled="!isTokenSet || selected.size===0 || bulkDeleting">
-                <Loader2 v-if="bulkDeleting" class="mr-2 h-4 w-4 animate-spin" />
-                <Trash2 v-else class="h-4 w-4 mr-2" /> 删除所选
+              <Button :disabled="!isTokenSet || selected.size===0 || bulkDeleting" variant="destructive"
+                      @click="bulkDelete">
+                <Loader2 v-if="bulkDeleting" class="mr-2 h-4 w-4 animate-spin"/>
+                <Trash2 v-else class="h-4 w-4 mr-2"/>
+                删除所选
               </Button>
             </div>
           </div>
@@ -425,7 +466,9 @@ const copy = async (text) => {
               <TableHeader>
                 <TableRow>
                   <TableHead class="w-10">
-                    <Checkbox :checked="selected.size>0 && selected.size===pagedKeys.length" :indeterminate="selected.size>0 && selected.size<pagedKeys.length" @update:checked="val => { if(val){ pagedKeys.forEach(k=>selected.add(k)) } else { pagedKeys.forEach(k=>selected.delete(k)) } }" />
+                    <Checkbox :checked="selected.size>0 && selected.size===pagedKeys.length"
+                              :indeterminate="selected.size>0 && selected.size<pagedKeys.length"
+                              @update:checked="val => { if(val){ pagedKeys.forEach(k=>selected.add(k)) } else { pagedKeys.forEach(k=>selected.delete(k)) } }"/>
                   </TableHead>
                   <TableHead class="min-w-[260px]">键名</TableHead>
                   <TableHead>值预览</TableHead>
@@ -435,32 +478,42 @@ const copy = async (text) => {
               <TableBody>
                 <TableRow v-for="k in pagedKeys" :key="k">
                   <TableCell>
-                    <Checkbox :checked="selected.has(k)" @update:checked="val => { val ? selected.add(k) : selected.delete(k) }" />
+                    <Checkbox :checked="selected.has(k)"
+                              @update:checked="val => { val ? selected.add(k) : selected.delete(k) }"/>
                   </TableCell>
                   <TableCell
-                    class="font-mono text-sm break-all cursor-pointer hover:underline"
-                    @click="openEdit(k)"
-                    title="点击查看/编辑"
+                      class="font-mono text-sm break-all cursor-pointer hover:underline"
+                      title="点击查看/编辑"
+                      @click="openEdit(k)"
                   >
                     {{ k }}
                   </TableCell>
                   <TableCell>
                     <div
-                      class="text-xs whitespace-pre-wrap max-h-40 overflow-auto rounded-md bg-muted p-2 cursor-pointer hover:bg-muted/70 transition-colors"
-                      @click="openEdit(k)"
-                      title="点击查看/编辑"
+                        class="text-xs whitespace-pre-wrap max-h-40 overflow-auto rounded-md bg-muted p-2 cursor-pointer hover:bg-muted/70 transition-colors"
+                        title="点击查看/编辑"
+                        @click="openEdit(k)"
                     >
                       {{ previewValue(values[k]) }}
                     </div>
                   </TableCell>
                   <TableCell class="space-x-1 whitespace-nowrap">
-                    <Button size="sm" variant="outline" @click="copy(k)"><Copy class="h-3.5 w-3.5 mr-1" />复制键</Button>
-                    <Button size="sm" variant="outline" @click="openEdit(k)"><Edit class="h-3.5 w-3.5 mr-1" />编辑</Button>
-                    <Button size="sm" variant="destructive" @click="deleteKey(k)"><Trash2 class="h-3.5 w-3.5 mr-1" />删除</Button>
+                    <Button size="sm" variant="outline" @click="copy(k)">
+                      <Copy class="h-3.5 w-3.5 mr-1"/>
+                      复制键
+                    </Button>
+                    <Button size="sm" variant="outline" @click="openEdit(k)">
+                      <Edit class="h-3.5 w-3.5 mr-1"/>
+                      编辑
+                    </Button>
+                    <Button size="sm" variant="destructive" @click="deleteKey(k)">
+                      <Trash2 class="h-3.5 w-3.5 mr-1"/>
+                      删除
+                    </Button>
                   </TableCell>
                 </TableRow>
                 <TableRow v-if="!pagedKeys.length">
-                  <TableCell colspan="4" class="text-center text-muted-foreground py-10">暂无数据</TableCell>
+                  <TableCell class="text-center text-muted-foreground py-10" colspan="4">暂无数据</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -469,7 +522,8 @@ const copy = async (text) => {
             <div class="flex items-center justify-between mt-4 text-sm">
               <div class="flex items-center gap-2">
                 <span>每页</span>
-                <select v-model.number="pageSize" class="h-9 w-[80px] rounded-md border border-input bg-background px-2">
+                <select v-model.number="pageSize"
+                        class="h-9 w-[80px] rounded-md border border-input bg-background px-2">
                   <option :value="10">10</option>
                   <option :value="20">20</option>
                   <option :value="50">50</option>
@@ -477,9 +531,11 @@ const copy = async (text) => {
                 <span class="text-muted-foreground">共 {{ totalPages }} 页</span>
               </div>
               <div class="flex items-center gap-2">
-                <Button variant="outline" :disabled="page===1" @click="page=Math.max(1,page-1)">上一页</Button>
+                <Button :disabled="page===1" variant="outline" @click="page=Math.max(1,page-1)">上一页</Button>
                 <span>第 {{ page }} / {{ totalPages }} 页</span>
-                <Button variant="outline" :disabled="page===totalPages" @click="page=Math.min(totalPages,page+1)">下一页</Button>
+                <Button :disabled="page===totalPages" variant="outline" @click="page=Math.min(totalPages,page+1)">
+                  下一页
+                </Button>
               </div>
             </div>
           </div>
@@ -497,18 +553,19 @@ const copy = async (text) => {
         <div class="space-y-3 py-2">
           <div class="space-y-1">
             <Label for="kv-key">键名</Label>
-            <Input id="kv-key" v-model="formKey" :disabled="isEditing" placeholder="请输入键名" />
+            <Input id="kv-key" v-model="formKey" :disabled="isEditing" placeholder="请输入键名"/>
           </div>
           <div class="space-y-1">
             <Label for="kv-val">值（JSON 或文本）</Label>
-            <textarea id="kv-val" v-model="formValue" rows="10" class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"></textarea>
+            <textarea id="kv-val" v-model="formValue" class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+                      rows="10"></textarea>
             <p v-if="formError" class="text-sm text-red-500">{{ formError }}</p>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="editOpen=false" :disabled="saving">取消</Button>
-          <Button @click="saveKeyValue" :disabled="saving">
-            <Loader2 v-if="saving" class="mr-2 h-4 w-4 animate-spin" />
+          <Button :disabled="saving" variant="outline" @click="editOpen=false">取消</Button>
+          <Button :disabled="saving" @click="saveKeyValue">
+            <Loader2 v-if="saving" class="mr-2 h-4 w-4 animate-spin"/>
             保存
           </Button>
         </DialogFooter>
@@ -523,13 +580,15 @@ const copy = async (text) => {
           <DialogDescription>JSON 对象的每个键会写入为一个 KV 项</DialogDescription>
         </DialogHeader>
         <div class="space-y-3 py-2">
-          <textarea v-model="importJson" rows="12" class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono" placeholder='{"key":"value"}'></textarea>
+          <textarea v-model="importJson" class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+                    placeholder='{"key":"value"}'
+                    rows="12"></textarea>
           <p v-if="importError" class="text-sm text-red-500">{{ importError }}</p>
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="importOpen=false" :disabled="importing">取消</Button>
-          <Button @click="doImport" :disabled="importing">
-            <Loader2 v-if="importing" class="mr-2 h-4 w-4 animate-spin" />
+          <Button :disabled="importing" variant="outline" @click="importOpen=false">取消</Button>
+          <Button :disabled="importing" @click="doImport">
+            <Loader2 v-if="importing" class="mr-2 h-4 w-4 animate-spin"/>
             开始导入
           </Button>
         </DialogFooter>

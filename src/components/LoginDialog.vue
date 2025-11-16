@@ -2,8 +2,8 @@
   <div>
     <!-- 登录弹框 -->
     <Dialog
-      v-model:open="isOpen"
-      :default-open="false"
+        v-model:open="isOpen"
+        :default-open="false"
     >
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
@@ -17,22 +17,22 @@
             正在加载登录方式...
           </div>
           <button
-            v-for="provider in providers"
-            :key="provider.id"
-            @click="handleLogin(provider)"
-            class="w-full flex items-center gap-3 px-4 py-3 border rounded-lg transition-colors hover:bg-accent"
-            :style="{
+              v-for="provider in providers"
+              :key="provider.id"
+              :style="{
               borderColor: (provider.color || '#666')
             }"
+              class="w-full flex items-center gap-3 px-4 py-3 border rounded-lg transition-colors hover:bg-accent"
+              @click="handleLogin(provider)"
           >
             <div class="w-10 h-10 flex items-center justify-center rounded-lg bg-muted">
-              <component :is="getProviderIcon(provider.icon)" class="w-6 h-6" />
+              <component :is="getProviderIcon(provider.icon)" class="w-6 h-6"/>
             </div>
             <div class="flex-1 text-left">
               <div class="font-medium">{{ provider.displayName || provider.name }}</div>
               <div class="text-sm text-muted-foreground">{{ provider.description }}</div>
             </div>
-            <ChevronRight class="w-5 h-5 text-muted-foreground" />
+            <ChevronRight class="w-5 h-5 text-muted-foreground"/>
           </button>
         </div>
       </DialogContent>
@@ -42,7 +42,7 @@
     <div v-if="isAuthenticating" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div class="bg-background p-6 rounded-lg shadow-xl">
         <div class="flex items-center gap-3">
-          <Loader2 class="w-5 h-5 animate-spin" />
+          <Loader2 class="w-5 h-5 animate-spin"/>
           <span>正在进行身份验证...</span>
         </div>
       </div>
@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import {ref, onMounted, watch} from 'vue'
 import {
   Dialog,
   DialogContent,
@@ -59,9 +59,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Github, Globe, ChevronRight, Loader2 } from 'lucide-vue-next'
-import { apiClient } from '@/lib/api'
-import { toast } from 'vue-sonner'
+import {Github, Globe, ChevronRight, Loader2} from 'lucide-vue-next'
+import {apiClient} from '@/lib/api'
+import {toast} from 'vue-sonner'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -121,9 +121,9 @@ const handleLogin = (provider) => {
   const top = (window.screen.height - height) / 2
 
   authWindow = window.open(
-    authUrl,
-    `oauth_${provider.id}`,
-    `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=no,status=no`
+      authUrl,
+      `oauth_${provider.id}`,
+      `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=no,status=no`
   )
 
   isAuthenticating.value = true
@@ -150,7 +150,7 @@ const handleLogin = (provider) => {
       const color = event.data.providerColor
       toast.success('登录成功', {
         description: `已通过 ${display} 登录`,
-        style: color ? { borderLeft: `4px solid ${color}` } : undefined
+        style: color ? {borderLeft: `4px solid ${color}`} : undefined
       })
 
       // 调用成功回调
@@ -193,7 +193,7 @@ const handleLogin = (provider) => {
         if (token) {
           toast.success('登录成功', {
             description: `已通过 ${authProvider || '账户'} 登录`,
-            style: providerColor ? { borderLeft: `4px solid ${providerColor}` } : undefined
+            style: providerColor ? {borderLeft: `4px solid ${providerColor}`} : undefined
           })
 
           // 调用成功回调

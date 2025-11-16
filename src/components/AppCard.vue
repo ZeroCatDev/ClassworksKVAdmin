@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed } from "vue";
-import { marked } from "marked";
+import {ref, computed} from "vue";
+import {marked} from "marked";
 import axios from "@/lib/axios";
 import Card from "./ui/card/Card.vue";
 import CardHeader from "./ui/card/CardHeader.vue";
@@ -13,8 +13,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "./ui/dialog";
-import { ExternalLink } from "lucide-vue-next";
-import { cn } from "@/lib/utils";
+import {ExternalLink} from "lucide-vue-next";
+import {cn} from "@/lib/utils";
 
 const props = defineProps({
   appId: {
@@ -138,7 +138,7 @@ const fetchReadme = async () => {
 
     // Gitea/Forgejo 或通用处理
     const genericMatch = url.match(
-      /https?:\/\/([^\/]+)\/([^\/]+)\/([^\/]+?)(?:\.git)?$/
+        /https?:\/\/([^\/]+)\/([^\/]+)\/([^\/]+?)(?:\.git)?$/
     );
     if (genericMatch) {
       const [, domain, owner, repo] = genericMatch;
@@ -172,13 +172,13 @@ fetchApp();
 <template>
   <!-- 卡片视图 -->
   <Card
-    :class="
+      :class="
       cn(
         'app-card cursor-pointer hover:shadow-lg transition-shadow',
         props.class
       )
     "
-    @click="showDialog = true"
+      @click="showDialog = true"
   >
     <CardHeader v-if="loading" class="px-6">
       <div class="animate-pulse">加载中...</div>
@@ -195,11 +195,11 @@ fetchApp();
       <CardHeader class="px-6">
         <div class="flex items-start gap-4">
           <img
-            v-if="iconUrl"
-            :src="iconUrl"
-            :alt="app.name"
-            class="w-12 h-12 rounded-lg object-cover shrink-0"
-            @error="(e) => (e.target.style.display = 'none')"
+              v-if="iconUrl"
+              :alt="app.name"
+              :src="iconUrl"
+              class="w-12 h-12 rounded-lg object-cover shrink-0"
+              @error="(e) => (e.target.style.display = 'none')"
           />
           <div class="flex-1 min-w-0">
             <CardTitle class="text-lg truncate">{{ app.name }}</CardTitle>
@@ -221,11 +221,11 @@ fetchApp();
       <DialogHeader v-if="app">
         <div class="flex items-start gap-4 mb-4">
           <img
-            v-if="iconUrl"
-            :src="iconUrl"
-            :alt="app.name"
-            class="w-20 h-20 rounded-lg object-cover"
-            @error="(e) => (e.target.style.display = 'none')"
+              v-if="iconUrl"
+              :alt="app.name"
+              :src="iconUrl"
+              class="w-20 h-20 rounded-lg object-cover"
+              @error="(e) => (e.target.style.display = 'none')"
           />
           <div class="flex-1">
             <DialogTitle class="text-2xl mb-2">{{ app.name }}</DialogTitle>
@@ -244,34 +244,34 @@ fetchApp();
           <div v-if="app.homepage_url" class="space-y-1">
             <div class="text-sm text-muted-foreground">应用主页</div>
             <a
-              :href="app.homepage_url"
-              target="_blank"
-              class="text-primary hover:underline inline-flex items-center gap-1"
+                :href="app.homepage_url"
+                class="text-primary hover:underline inline-flex items-center gap-1"
+                target="_blank"
             >
               访问
-              <ExternalLink class="h-3 w-3" />
+              <ExternalLink class="h-3 w-3"/>
             </a>
           </div>
           <div v-if="app.terms_url" class="space-y-1">
             <div class="text-sm text-muted-foreground">服务条款</div>
             <a
-              :href="app.terms_url"
-              target="_blank"
-              class="text-primary hover:underline inline-flex items-center gap-1 truncate"
+                :href="app.terms_url"
+                class="text-primary hover:underline inline-flex items-center gap-1 truncate"
+                target="_blank"
             >
               查看
-              <ExternalLink class="h-3 w-3" />
+              <ExternalLink class="h-3 w-3"/>
             </a>
           </div>
           <div v-if="app.privacy_url" class="space-y-1">
             <div class="text-sm text-muted-foreground">隐私政策</div>
             <a
-              :href="app.privacy_url"
-              target="_blank"
-              class="text-primary hover:underline inline-flex items-center gap-1 truncate"
+                :href="app.privacy_url"
+                class="text-primary hover:underline inline-flex items-center gap-1 truncate"
+                target="_blank"
             >
               查看
-              <ExternalLink class="h-3 w-3" />
+              <ExternalLink class="h-3 w-3"/>
             </a>
           </div>
         </div>
@@ -281,13 +281,13 @@ fetchApp();
       <div v-if="readme" class="mt-6">
         <h3 class="text-lg font-semibold mb-4">README</h3>
         <div
-          class="prose prose-sm dark:prose-invert max-w-none border rounded-lg p-6 bg-muted/30 prose-headings:font-semibold prose-a:text-primary prose-blockquote:border-l-2 prose-blockquote:pl-4 prose-img:rounded-md prose-table:w-full break-words"
-          v-html="renderedReadme"
+            class="prose prose-sm dark:prose-invert max-w-none border rounded-lg p-6 bg-muted/30 prose-headings:font-semibold prose-a:text-primary prose-blockquote:border-l-2 prose-blockquote:pl-4 prose-img:rounded-md prose-table:w-full break-words"
+            v-html="renderedReadme"
         ></div>
       </div>
       <div
-        v-else-if="!loading && app?.homepage_url"
-        class="mt-6 text-center text-muted-foreground"
+          v-else-if="!loading && app?.homepage_url"
+          class="mt-6 text-center text-muted-foreground"
       >
         无法加载 README 文件
       </div>

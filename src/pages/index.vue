@@ -1,16 +1,36 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { apiClient } from '@/lib/api'
-import { deviceStore } from '@/lib/deviceStore'
-import { useAccountStore } from '@/stores/account'
-import { useOAuthCallback } from '@/composables/useOAuthCallback'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, Trash2, Key, Shield, RefreshCw, Copy, CheckCircle2, Settings, Package, Clock, AlertCircle, Lock, Info, User, LogOut, Layers, ChevronDown, TestTube2, Edit } from 'lucide-vue-next'
+import {ref, computed, onMounted} from 'vue'
+import {apiClient} from '@/lib/api'
+import {deviceStore} from '@/lib/deviceStore'
+import {useAccountStore} from '@/stores/account'
+import {useOAuthCallback} from '@/composables/useOAuthCallback'
+import {Button} from '@/components/ui/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
+import {Input} from '@/components/ui/input'
+import {Label} from '@/components/ui/label'
+import {Badge} from '@/components/ui/badge'
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
+import {
+  Plus,
+  Trash2,
+  Key,
+  Shield,
+  RefreshCw,
+  Copy,
+  CheckCircle2,
+  Settings,
+  Package,
+  Clock,
+  AlertCircle,
+  Lock,
+  Info,
+  User,
+  LogOut,
+  Layers,
+  ChevronDown,
+  TestTube2,
+  Edit
+} from 'lucide-vue-next'
 import DropdownMenu from '@/components/ui/dropdown-menu/DropdownMenu.vue'
 import DropdownItem from '@/components/ui/dropdown-menu/DropdownItem.vue'
 import AppCard from '@/components/AppCard.vue'
@@ -21,7 +41,7 @@ import DeviceSwitcher from '@/components/DeviceSwitcher.vue'
 import EditDeviceNameDialog from '@/components/EditDeviceNameDialog.vue'
 import EditNamespaceDialog from '@/components/EditNamespaceDialog.vue'
 import FeatureNavigation from '@/components/FeatureNavigation.vue'
-import { toast } from 'vue-sonner'
+import {toast} from 'vue-sonner'
 
 const deviceUuid = ref('')
 const tokens = ref([])
@@ -52,8 +72,7 @@ const authNote = ref('')
 
 
 // 使用OAuth回调处理
-const { handleOAuthCallback } = useOAuthCallback()
-
+const {handleOAuthCallback} = useOAuthCallback()
 
 
 // 检查 namespace 是否等于 UUID（需要提示用户修改）
@@ -74,7 +93,7 @@ const groupedTokens = computed(() => {
   const groups = {}
   for (const t of tokens.value) {
     const id = t.appId
-    if (!groups[id]) groups[id] = { appId: id, tokens: [] }
+    if (!groups[id]) groups[id] = {appId: id, tokens: []}
     groups[id].tokens.push(t)
   }
   return Object.values(groups)
@@ -90,7 +109,6 @@ const loadDeviceInfo = async () => {
     deviceInfo.value = null
   }
 }
-
 
 
 const loadTokens = async () => {
@@ -141,9 +159,9 @@ const authorizeApp = async () => {
 
     // 调用授权接口
     await apiClient.authorizeApp(
-      appIdToAuthorize.value,
-      deviceUuid.value,
-      options
+        appIdToAuthorize.value,
+        deviceUuid.value,
+        options
     )
 
     showAuthorizeDialog.value = false
@@ -168,9 +186,9 @@ const revokeToken = async () => {
   try {
     // 使用安装记录ID撤销授权
     await apiClient.revokeDeviceToken(
-      deviceUuid.value,
-      selectedToken.value.id,
-      accountStore.isAuthenticated ? accountStore.token : null
+        deviceUuid.value,
+        selectedToken.value.id,
+        accountStore.isAuthenticated ? accountStore.token : null
     )
     showRevokeDialog.value = false
     selectedToken.value = null
@@ -212,7 +230,6 @@ const updateUuid = (newUuid = null) => {
   loadDeviceAccount()
   loadTokens()
 }
-
 
 
 const formatDate = (dateString) => {
@@ -272,7 +289,7 @@ const bindCurrentDevice = async () => {
   }
 
   try {
-  await apiClient.bindDeviceToAccount(deviceUuid.value)
+    await apiClient.bindDeviceToAccount(deviceUuid.value)
     await loadDeviceInfo()
     toast.success('设备已绑定到您的账户')
   } catch (error) {
@@ -280,8 +297,8 @@ const bindCurrentDevice = async () => {
     if (error.message.includes('设备不存在')) {
       try {
         await apiClient.registerDevice(
-          deviceUuid.value,
-          deviceInfo.value?.deviceName || null
+            deviceUuid.value,
+            deviceInfo.value?.deviceName || null
         )
         await apiClient.bindDeviceToAccount(deviceUuid.value)
         await loadDeviceInfo()
@@ -303,7 +320,7 @@ const unbindCurrentDevice = async () => {
   }
 
   try {
-  await apiClient.unbindDeviceFromAccount(deviceUuid.value)
+    await apiClient.unbindDeviceFromAccount(deviceUuid.value)
     await loadDeviceInfo()
     toast.success('设备已解绑')
   } catch (error) {
@@ -347,7 +364,6 @@ onMounted(async () => {
     await loadDeviceAccount()
 
 
-
     // 加载tokens
     await loadTokens()
   }
@@ -374,9 +390,9 @@ onMounted(async () => {
             <div class="h-8 w-px bg-border"></div>
             <!-- Vercel风格设备切换器 -->
             <DeviceSwitcher
-              :device-info="deviceInfo"
-              :device-uuid="deviceUuid"
-              @device-changed="updateUuid"
+                :device-info="deviceInfo"
+                :device-uuid="deviceUuid"
+                @device-changed="updateUuid"
             />
           </div>
           <div class="flex items-center gap-2">
@@ -385,80 +401,79 @@ onMounted(async () => {
               <DropdownMenu v-model:open="showUserMenu" class="z-50">
                 <template #trigger="{ toggle, open }">
                   <Button
-                    variant="ghost"
-                    size="sm"
-                    class="flex items-center gap-2"
-                    @click="toggle"
+                      class="flex items-center gap-2"
+                      size="sm"
+                      variant="ghost"
+                      @click="toggle"
                   >
                     <img
-                      v-if="accountStore.userAvatar"
-                      :src="accountStore.userAvatar"
-                      :alt="accountStore.userName"
-                      class="w-5 h-5 rounded-full"
+                        v-if="accountStore.userAvatar"
+                        :alt="accountStore.userName"
+                        :src="accountStore.userAvatar"
+                        class="w-5 h-5 rounded-full"
                     >
-                    <User v-else class="h-4 w-4" />
+                    <User v-else class="h-4 w-4"/>
                     <span class="hidden sm:inline">{{ accountStore.userName }}</span>
                     <span v-if="accountStore.profile?.providerInfo"
-                          class="hidden md:inline px-1.5 py-0.5 rounded text-[10px]"
                           :style="{
                             backgroundColor: (accountStore.profile.providerInfo.color || '#999') + '22',
                             color: accountStore.profile.providerInfo.color || 'inherit',
                             border: `1px solid ${(accountStore.profile.providerInfo.color || '#999')}55`
                           }"
+                          class="hidden md:inline px-1.5 py-0.5 rounded text-[10px]"
                     >
                       {{ accountStore.profile.providerInfo.displayName }}
                     </span>
-                    <ChevronDown class="h-3.5 w-3.5" :class="{ 'rotate-180': open }" />
+                    <ChevronDown :class="{ 'rotate-180': open }" class="h-3.5 w-3.5"/>
                   </Button>
                 </template>
-                <DropdownItem :href="accountStore.profile.providerInfo.website" target="_blank" :style="{
+                <DropdownItem :href="accountStore.profile.providerInfo.website" :style="{
                   backgroundColor: (accountStore.profile.providerInfo.color || '#999') + '22',
                   color: accountStore.profile.providerInfo.color || 'inherit',
                   border: `1px solid ${(accountStore.profile.providerInfo.color || '#999')}55`
-                }">
-                  <Layers class="h-4 w-4" />
+                }" target="_blank">
+                  <Layers class="h-4 w-4"/>
                   账户渠道：{{ accountStore.profile.providerInfo.displayName }}
                 </DropdownItem>
 
                 <DropdownItem @click="$router.push('/device-management')">
-                  <Layers class="h-4 w-4" />
+                  <Layers class="h-4 w-4"/>
                   设备管理
                 </DropdownItem>
 
                 <DropdownItem @click="$router.push('/auto-auth-management')">
-                  <Shield class="h-4 w-4" />
+                  <Shield class="h-4 w-4"/>
                   自动授权配置
                 </DropdownItem>
                 <DropdownItem @click="$router.push('/auto-auth-test')">
-                  <TestTube2 class="h-4 w-4" />
+                  <TestTube2 class="h-4 w-4"/>
                   API 测试工具
                 </DropdownItem>
-                <DropdownItem @click="handleLogout" class="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300">
-                  <LogOut class="h-4 w-4" />
+                <DropdownItem class="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                              @click="handleLogout">
+                  <LogOut class="h-4 w-4"/>
                   退出登录
                 </DropdownItem>
               </DropdownMenu>
             </template>
             <Button
-              v-else
-              variant="outline"
-              size="sm"
-              @click="showLoginDialog = true"
+                v-else
+                size="sm"
+                variant="outline"
+                @click="showLoginDialog = true"
             >
-              <User class="h-4 w-4 mr-2" />
+              <User class="h-4 w-4 mr-2"/>
               登录
             </Button>
 
 
-
-
             <Button
-              variant="outline"
-              size="icon"
-              @click="loadTokens"
-              :disabled="isLoading"
+                :disabled="isLoading"
+                size="icon"
+                variant="outline"
+                @click="loadTokens"
             >
-              <RefreshCw :class="{ 'animate-spin': isLoading }" class="h-4 w-4" />
+              <RefreshCw :class="{ 'animate-spin': isLoading }" class="h-4 w-4"/>
             </Button>
           </div>
         </div>
@@ -468,10 +483,11 @@ onMounted(async () => {
     <!-- Main Content -->
     <div class="container mx-auto px-6 py-8 max-w-7xl">
       <!-- Namespace 提示卡片 - 如果 namespace 等于 UUID -->
-      <Card v-if="namespaceEqualsUuid" class="mb-6 border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20">
+      <Card v-if="namespaceEqualsUuid"
+            class="mb-6 border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20">
         <CardContent class="py-4">
           <div class="flex items-start gap-3">
-            <AlertCircle class="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+            <AlertCircle class="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0"/>
             <div class="flex-1">
               <p class="text-sm font-medium text-yellow-900 dark:text-yellow-100 mb-1">
                 建议自定义命名空间
@@ -480,13 +496,13 @@ onMounted(async () => {
                 您的命名空间当前使用设备 UUID，建议修改为更有意义的名称（如班级名、房间号等），方便自动授权时识别。
               </p>
               <Button
-                v-if="accountStore.isAuthenticated"
-                variant="outline"
-                size="sm"
-                @click="showEditNamespaceDialog = true"
-                class="bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-200 dark:hover:bg-yellow-900/50"
+                  v-if="accountStore.isAuthenticated"
+                  class="bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-200 dark:hover:bg-yellow-900/50"
+                  size="sm"
+                  variant="outline"
+                  @click="showEditNamespaceDialog = true"
               >
-                <Settings class="h-3 w-3 mr-2" />
+                <Settings class="h-3 w-3 mr-2"/>
                 立即修改
               </Button>
             </div>
@@ -500,7 +516,7 @@ onMounted(async () => {
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-3">
               <div class="rounded-lg bg-primary/10 p-2">
-                <Layers class="h-5 w-5 text-primary" />
+                <Layers class="h-5 w-5 text-primary"/>
               </div>
               <div>
                 <div class="flex items-center gap-2">
@@ -508,13 +524,13 @@ onMounted(async () => {
                     {{ deviceInfo?.name || '设备' }}
                   </CardTitle>
                   <Button
-                    v-if="accountStore.isAuthenticated"
-                    variant="ghost"
-                    size="sm"
-                    @click="showEditNameDialog = true"
-                    class="h-6 w-6 p-0"
+                      v-if="accountStore.isAuthenticated"
+                      class="h-6 w-6 p-0"
+                      size="sm"
+                      variant="ghost"
+                      @click="showEditNameDialog = true"
                   >
-                    <Edit class="h-3 w-3" />
+                    <Edit class="h-3 w-3"/>
                   </Button>
                 </div>
                 <CardDescription>设备命名空间标识符</CardDescription>
@@ -524,26 +540,26 @@ onMounted(async () => {
 
 
               <!-- 设备账户绑定状态 -->
-              <Badge v-if="deviceInfo?.account" variant="secondary" class="px-3 py-1">
-                <User class="h-3 w-3 mr-1.5" />
+              <Badge v-if="deviceInfo?.account" class="px-3 py-1" variant="secondary">
+                <User class="h-3 w-3 mr-1.5"/>
                 {{ deviceInfo.account.name }}
               </Badge>
               <Button
-                v-else-if="accountStore.isAuthenticated"
-                variant="outline"
-                size="sm"
-                @click="bindCurrentDevice"
+                  v-else-if="accountStore.isAuthenticated"
+                  size="sm"
+                  variant="outline"
+                  @click="bindCurrentDevice"
               >
-                <User class="h-4 w-4 mr-2" />
+                <User class="h-4 w-4 mr-2"/>
                 绑定到账户
               </Button>
 
               <Button
-                @click="$router.push('/auto-auth-management')"
-                variant="outline"
-                size="sm"
+                  size="sm"
+                  variant="outline"
+                  @click="$router.push('/auto-auth-management')"
               >
-                <Shield class="h-4 w-4 mr-1" />
+                <Shield class="h-4 w-4 mr-1"/>
                 自动授权
               </Button>
             </div>
@@ -553,18 +569,19 @@ onMounted(async () => {
           <div class="space-y-4">
             <!-- Namespace Display (主要显示) -->
             <div class="relative group">
-              <div class="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 rounded-lg blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50" />
+              <div
+                  class="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 rounded-lg blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50"/>
               <div class="relative">
                 <div class="flex items-center justify-between mb-2">
                   <Label class="text-sm font-medium">命名空间</Label>
                   <Button
-                    v-if="accountStore.isAuthenticated"
-                    variant="ghost"
-                    size="sm"
-                    @click="showEditNamespaceDialog = true"
-                    class="h-7"
+                      v-if="accountStore.isAuthenticated"
+                      class="h-7"
+                      size="sm"
+                      variant="ghost"
+                      @click="showEditNamespaceDialog = true"
                   >
-                    <Settings class="h-3 w-3 mr-1" />
+                    <Settings class="h-3 w-3 mr-1"/>
                     编辑
                   </Button>
                 </div>
@@ -573,14 +590,14 @@ onMounted(async () => {
                     {{ deviceInfo?.namespace || deviceUuid }}
                   </code>
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-8 w-8"
-                    @click="copyToClipboard(deviceInfo?.namespace || deviceUuid, 'namespace')"
-                    title="复制命名空间"
+                      class="h-8 w-8"
+                      size="icon"
+                      title="复制命名空间"
+                      variant="ghost"
+                      @click="copyToClipboard(deviceInfo?.namespace || deviceUuid, 'namespace')"
                   >
-                    <CheckCircle2 v-if="copied === 'namespace'" class="h-4 w-4 text-green-500 animate-in zoom-in-50" />
-                    <Copy v-else class="h-4 w-4" />
+                    <CheckCircle2 v-if="copied === 'namespace'" class="h-4 w-4 text-green-500 animate-in zoom-in-50"/>
+                    <Copy v-else class="h-4 w-4"/>
                   </Button>
                 </div>
               </div>
@@ -606,41 +623,42 @@ onMounted(async () => {
 
 
       <div class="flex justify-between items-center">
-  <h2 class="text-xl font-semibold">已授权应用</h2>
-        <Button @click="showAuthorizeDialog = true" class="gap-2">
-          <Plus class="h-4 w-4" />
+        <h2 class="text-xl font-semibold">已授权应用</h2>
+        <Button class="gap-2" @click="showAuthorizeDialog = true">
+          <Plus class="h-4 w-4"/>
           授权新应用
         </Button>
       </div>
 
 
       <div v-if="isLoading" class="text-center py-12">
-        <RefreshCw class="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+        <RefreshCw class="h-8 w-8 animate-spin mx-auto text-muted-foreground"/>
         <p class="mt-4 text-muted-foreground">加载中...</p>
       </div>
 
 
       <Card v-else-if="tokens.length === 0" class="border-dashed">
         <CardContent class="flex flex-col items-center justify-center py-12">
-          <Package class="h-16 w-16 text-muted-foreground/50 mb-4" />
+          <Package class="h-16 w-16 text-muted-foreground/50 mb-4"/>
           <p class="text-lg font-medium text-muted-foreground mb-2">暂无授权应用</p>
           <p class="text-sm text-muted-foreground mb-4">点击上方按钮授权您的第一个应用</p>
-          <Button @click="showAuthorizeDialog = true" variant="outline">
-            <Plus class="h-4 w-4 mr-2" />
+          <Button variant="outline" @click="showAuthorizeDialog = true">
+            <Plus class="h-4 w-4 mr-2"/>
             授权应用
           </Button>
         </CardContent>
       </Card>
       <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div
-          v-for="group in groupedTokens"
-          :key="group.appId"
-          class="space-y-4"
+            v-for="group in groupedTokens"
+            :key="group.appId"
+            class="space-y-4"
         >
-          <AppCard :app-id="group.appId" />
+          <AppCard :app-id="group.appId"/>
 
-              <TokenList
-                :items="group.tokens.map(t => ({
+          <TokenList
+              :copied-id="copied"
+              :items="group.tokens.map(t => ({
                   id: t.id,
                   token: t.token,
                   appId: t.appId,
@@ -648,22 +666,21 @@ onMounted(async () => {
                   note: t.note,
                   installedAt: t.installedAt,
                 }))"
-                :loading="isLoading"
-                :copied-id="copied"
-                :show-app-column="false"
-                compact
-                sort-by-time
-                @copy="(item) => copyToClipboard(item.token, item.token)"
-                @revoke="confirmRevoke"
-                @open="(item) => { selectedToken = item; showTokenDialog = true }"
-              />
+              :loading="isLoading"
+              :show-app-column="false"
+              compact
+              sort-by-time
+              @copy="(item) => copyToClipboard(item.token, item.token)"
+              @open="(item) => { selectedToken = item; showTokenDialog = true }"
+              @revoke="confirmRevoke"
+          />
 
         </div>
       </div>
 
       <!-- 功能导航 -->
       <div class="mt-12">
-        <FeatureNavigation />
+        <FeatureNavigation/>
       </div>
 
 
@@ -679,17 +696,17 @@ onMounted(async () => {
             <div class="space-y-2">
               <Label for="appId">应用 ID</Label>
               <Input
-                id="appId"
-                v-model="appIdToAuthorize"
-                placeholder="输入应用 ID"
+                  id="appId"
+                  v-model="appIdToAuthorize"
+                  placeholder="输入应用 ID"
               />
             </div>
             <div class="space-y-2">
               <Label for="note">备注（可选）</Label>
               <Input
-                id="note"
-                v-model="authNote"
-                placeholder="为此授权添加备注"
+                  id="note"
+                  v-model="authNote"
+                  placeholder="为此授权添加备注"
               />
             </div>
             <p v-if="accountStore.isAuthenticated" class="text-xs text-muted-foreground mt-2">
@@ -767,63 +784,64 @@ onMounted(async () => {
               <span class="font-medium">令牌：</span>
               <code class="text-xs font-mono break-all">{{ selectedToken.token.slice(0, 8) }}...</code>
               <Button
-                variant="ghost"
-                size="sm"
-                class="h-7 w-7 ml-auto"
-                @click="copyToClipboard(selectedToken.token, selectedToken.token)"
+                  class="h-7 w-7 ml-auto"
+                  size="sm"
+                  variant="ghost"
+                  @click="copyToClipboard(selectedToken.token, selectedToken.token)"
               >
-                <CheckCircle2 v-if="copied === selectedToken.token" class="h-3.5 w-3.5 text-green-500" />
-                <Copy v-else class="h-3.5 w-3.5" />
+                <CheckCircle2 v-if="copied === selectedToken.token" class="h-3.5 w-3.5 text-green-500"/>
+                <Copy v-else class="h-3.5 w-3.5"/>
               </Button>
             </div>
             <div class="text-sm text-muted-foreground flex items-center gap-2">
-              <Clock class="h-4 w-4" />
+              <Clock class="h-4 w-4"/>
               <span>{{ formatDate(selectedToken.installedAt) }}</span>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" @click="showTokenDialog = false">关闭</Button>
-            <Button variant="destructive" @click="() => { showTokenDialog = false; confirmRevoke(selectedToken) }">撤销</Button>
+            <Button variant="destructive" @click="() => { showTokenDialog = false; confirmRevoke(selectedToken) }">
+              撤销
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
 
 
     </div>
 
     <!-- 登录弹框 -->
     <LoginDialog
-      v-model="showLoginDialog"
-      :on-success="handleLoginSuccess"
-      @update:modelValue="val => {
+        v-model="showLoginDialog"
+        :on-success="handleLoginSuccess"
+        @update:modelValue="val => {
         if (!val && deviceRequired.value) {
           showRegisterDialog.value = true
         }
       }"
     />    <!-- 设备注册弹框 -->
     <DeviceRegisterDialog
-      v-model="showRegisterDialog"
-      @confirm="handleDeviceRegistered"
-      :required="deviceRequired"
+        v-model="showRegisterDialog"
+        :required="deviceRequired"
+        @confirm="handleDeviceRegistered"
     />
 
     <!-- 设备名称编辑弹框 -->
     <EditDeviceNameDialog
-      v-model="showEditNameDialog"
-      :device-uuid="deviceUuid"
-      :current-name="deviceInfo?.deviceName || ''"
-      @success="handleDeviceNameUpdated"
+        v-model="showEditNameDialog"
+        :current-name="deviceInfo?.deviceName || ''"
+        :device-uuid="deviceUuid"
+        @success="handleDeviceNameUpdated"
     />
 
     <!-- 命名空间编辑弹框 -->
     <EditNamespaceDialog
-      v-if="accountStore.isAuthenticated && deviceInfo"
-      v-model="showEditNamespaceDialog"
-      :device-uuid="deviceUuid"
-      :current-namespace="deviceInfo.namespace"
-      :account-token="accountStore.token"
-      @success="handleNamespaceUpdated"
+        v-if="accountStore.isAuthenticated && deviceInfo"
+        v-model="showEditNamespaceDialog"
+        :account-token="accountStore.token"
+        :current-namespace="deviceInfo.namespace"
+        :device-uuid="deviceUuid"
+        @success="handleNamespaceUpdated"
     />
   </div>
 </template>

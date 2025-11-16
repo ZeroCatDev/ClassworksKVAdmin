@@ -1,7 +1,7 @@
 <script setup>
-import { ref, watch } from 'vue'
-import { apiClient } from '@/lib/api'
-import { deviceStore } from '@/lib/deviceStore'
+import {ref, watch} from 'vue'
+import {apiClient} from '@/lib/api'
+import {deviceStore} from '@/lib/deviceStore'
 import {
   Dialog,
   DialogContent,
@@ -10,11 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Loader2, Eye, EyeOff } from 'lucide-vue-next'
-import { toast } from 'vue-sonner'
+import {Button} from '@/components/ui/button'
+import {Input} from '@/components/ui/input'
+import {Label} from '@/components/ui/label'
+import {Loader2, Eye, EyeOff} from 'lucide-vue-next'
+import {toast} from 'vue-sonner'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -85,7 +85,7 @@ const handleAuth = async () => {
 
 <template>
   <Dialog :open="modelValue" @update:open="(val) => closable && emit('update:modelValue', val)">
-    <DialogContent class="sm:max-w-[500px]" :closable="closable">
+    <DialogContent :closable="closable" class="sm:max-w-[500px]">
       <DialogHeader>
         <DialogTitle>{{ title }}</DialogTitle>
         <DialogDescription>{{ description }}</DialogDescription>
@@ -96,10 +96,10 @@ const handleAuth = async () => {
         <div class="space-y-2">
           <Label for="device-uuid">设备 UUID *</Label>
           <Input
-            id="device-uuid"
-            v-model="deviceUuid"
-            placeholder="输入设备 UUID"
-            @keyup.enter="handleAuth"
+              id="device-uuid"
+              v-model="deviceUuid"
+              placeholder="输入设备 UUID"
+              @keyup.enter="handleAuth"
           />
         </div>
 
@@ -108,20 +108,20 @@ const handleAuth = async () => {
 
       <DialogFooter>
         <Button
-          v-if="closable"
-          type="button"
-          variant="outline"
-          @click="closeDialog"
-          :disabled="isLoading"
+            v-if="closable"
+            :disabled="isLoading"
+            type="button"
+            variant="outline"
+            @click="closeDialog"
         >
           取消
         </Button>
         <Button
-          type="button"
-          @click="handleAuth"
-          :disabled="isLoading"
+            :disabled="isLoading"
+            type="button"
+            @click="handleAuth"
         >
-          <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin"/>
           确认
         </Button>
       </DialogFooter>
