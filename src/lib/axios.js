@@ -189,7 +189,7 @@ axiosInstance.interceptors.response.use(
     }
 
     // 明确的权限问题同样触发登出（例如服务端使用 403 表示 Token 无效或权限已失效）
-    if (status === 403) {
+    if (status === 403&& resp?.data?.code === 'AUTH_JWT_EXPIRED') {
       try { authHandlers?.onAuthFailure && authHandlers.onAuthFailure(new Error(message || 'FORBIDDEN')) } catch {}
       return Promise.reject(new Error(message || 'FORBIDDEN'))
     }

@@ -202,8 +202,8 @@ onMounted(() => {
 
             </div>
             <div class="flex items-center gap-1 ml-auto">
-              <Badge v-if="currentDevice.isOwned" variant="secondary" class="h-4 px-1 text-[10px]">
-                已绑定
+              <Badge v-if="!currentDevice.isOwned" variant="secondary" class="h-4 px-1 text-[10px]">
+                未绑定
               </Badge>
               <ChevronDown
                 class="h-3 w-3 text-muted-foreground flex-shrink-0 transition-transform duration-200"
