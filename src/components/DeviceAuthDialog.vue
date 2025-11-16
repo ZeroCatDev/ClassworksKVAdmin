@@ -24,7 +24,7 @@ const props = defineProps({
   },
   description: {
     type: String,
-    default: '请输入设备 UUID 和密码'
+    default: '请输入设备 UUID'
   },
   closable: {
     type: Boolean,
@@ -35,9 +35,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'success'])
 
 const isLoading = ref(false)
-const showPassword = ref(false)
+
 const deviceUuid = ref('')
-const devicePassword = ref('')
+
 
 // 监听对话框打开，自动填充 UUID
 watch(() => props.modelValue, (isOpen) => {
@@ -62,21 +62,17 @@ const handleAuth = async () => {
     toast.error('请输入设备 UUID')
     return
   }
-  if (!devicePassword.value) {
-    toast.error('请输入设备密码')
-    return
-  }
 
   isLoading.value = true
   try {
-    // 尝试通过 UUID 和密码验证设备
-    const deviceInfo = await apiClient.verifyDevicePassword(deviceUuid.value, devicePassword.value)
+    // 尝试通过 UUID 验证设备
+    const deviceInfo = await apiClient.getDeviceInfo(deviceUuid.value)
 
     // 验证成功，保存到 deviceStore
     deviceStore.setDeviceUuid(deviceUuid.value)
 
     toast.success('认证成功')
-    emit('success', deviceUuid.value, devicePassword.value, deviceInfo)
+    emit('success', deviceUuid.value, deviceInfo)
   } catch (error) {
     toast.error('认证失败：' + error.message)
   } finally {
@@ -84,10 +80,7 @@ const handleAuth = async () => {
   }
 }
 
-// 切换密码可见性
-const togglePasswordVisibility = () => {
-  showPassword.value = !showPassword.value
-}
+
 </script>
 
 <template>
@@ -110,30 +103,7 @@ const togglePasswordVisibility = () => {
           />
         </div>
 
-        <!-- 密码输入 -->
-        <div class="space-y-2">
-          <Label for="device-password">设备密码 *</Label>
-          <div class="relative">
-            <Input
-              id="device-password"
-              :type="showPassword ? 'text' : 'password'"
-              v-model="devicePassword"
-              placeholder="输入设备密码"
-              @keyup.enter="handleAuth"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              class="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-              @click="togglePasswordVisibility"
-              tabindex="-1"
-            >
-              <Eye v-if="!showPassword" class="h-4 w-4 text-muted-foreground" />
-              <EyeOff v-else class="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </div>
-        </div>
+
       </div>
 
       <DialogFooter>

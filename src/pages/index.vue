@@ -10,14 +10,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, Trash2, Key, Shield, RefreshCw, Copy, CheckCircle2, Settings, Package, Clock, AlertCircle, Lock, Info, User, LogOut, Layers, ChevronDown, TestTube2 } from 'lucide-vue-next'
+import { Plus, Trash2, Key, Shield, RefreshCw, Copy, CheckCircle2, Settings, Package, Clock, AlertCircle, Lock, Info, User, LogOut, Layers, ChevronDown, TestTube2, Edit } from 'lucide-vue-next'
 import DropdownMenu from '@/components/ui/dropdown-menu/DropdownMenu.vue'
 import DropdownItem from '@/components/ui/dropdown-menu/DropdownItem.vue'
 import AppCard from '@/components/AppCard.vue'
 import TokenList from '@/components/TokenList.vue'
-import PasswordInput from '@/components/PasswordInput.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
 import DeviceRegisterDialog from '@/components/DeviceRegisterDialog.vue'
+import DeviceSwitcher from '@/components/DeviceSwitcher.vue'
 import EditDeviceNameDialog from '@/components/EditDeviceNameDialog.vue'
 import EditNamespaceDialog from '@/components/EditNamespaceDialog.vue'
 import FeatureNavigation from '@/components/FeatureNavigation.vue'
@@ -36,7 +36,7 @@ const appInfoCache = ref({}) // 缓存应用信息
 const showAuthorizeDialog = ref(false)
 const showRevokeDialog = ref(false)
 const showRegisterDialog = ref(false)
-const showPasswordDialog = ref(false)
+
 const showLoginDialog = ref(false)
 const showEditNameDialog = ref(false)
 const showEditNamespaceDialog = ref(false)
@@ -47,19 +47,14 @@ const showTokenDialog = ref(false)
 
 // Form data
 const appIdToAuthorize = ref('')
-const authPassword = ref('')
+
 const authNote = ref('')
-const devicePassword = ref('')
-const newPassword = ref('')
-const currentPassword = ref('')
-const passwordHint = ref('')
-const revokePassword = ref('') // 撤销授权时的密码
+
 
 // 使用OAuth回调处理
 const { handleOAuthCallback } = useOAuthCallback()
 
-// 使用计算属性来获取是否有密码
-const hasPassword = computed(() => deviceInfo.value?.hasPassword || false)
+
 
 // 检查 namespace 是否等于 UUID（需要提示用户修改）
 const namespaceEqualsUuid = computed(() => {
@@ -90,28 +85,13 @@ const loadDeviceInfo = async () => {
   try {
     const info = await apiClient.getDeviceInfo(deviceUuid.value)
     deviceInfo.value = info
-    // 如果有密码提示，设置它
-    if (info.passwordHint) {
-      passwordHint.value = info.passwordHint
-    }
   } catch (error) {
     console.log('Failed to load device info:', error)
-    // 设备不存在时，deviceInfo为null，hasPassword会返回false
     deviceInfo.value = null
   }
 }
 
-// 加载密码提示
-const loadPasswordHint = async () => {
-  try {
-    const data = await apiClient.getPasswordHint(deviceUuid.value)
-    if (data.hint) {
-      passwordHint.value = data.hint
-    }
-  } catch (error) {
-    console.log('Failed to load password hint')
-  }
-}
+
 
 const loadTokens = async () => {
   if (!deviceUuid.value) return
@@ -157,10 +137,6 @@ const authorizeApp = async () => {
       note: authNote.value || '授权访问',
     }
 
-    if (hasPassword.value && authPassword.value) {
-      options.password = authPassword.value
-    }
-
     // 账户已登录时无需显式传 token，axios 会自动注入 Authorization
 
     // 调用授权接口
@@ -172,7 +148,6 @@ const authorizeApp = async () => {
 
     showAuthorizeDialog.value = false
     appIdToAuthorize.value = ''
-    authPassword.value = ''
     authNote.value = ''
 
     await loadTokens()
@@ -190,23 +165,15 @@ const confirmRevoke = (token) => {
 const revokeToken = async () => {
   if (!selectedToken.value) return
 
-  // 如果没有登录账户且设备有密码，检查是否输入了密码
-  if (!accountStore.isAuthenticated && hasPassword.value && !revokePassword.value) {
-    alert('请输入设备密码')
-    return
-  }
-
   try {
     // 使用安装记录ID撤销授权
     await apiClient.revokeDeviceToken(
       deviceUuid.value,
       selectedToken.value.id,
-      accountStore.isAuthenticated ? null : revokePassword.value,
       accountStore.isAuthenticated ? accountStore.token : null
     )
     showRevokeDialog.value = false
     selectedToken.value = null
-    revokePassword.value = ''
     await loadTokens()
     toast.success('撤销成功')
   } catch (error) {
@@ -226,47 +193,27 @@ const copyToClipboard = async (text, id) => {
   }
 }
 
-const updateUuid = () => {
-  showRegisterDialog.value = false
-  deviceUuid.value = deviceStore.getDeviceUuid()
+const updateUuid = (newUuid = null) => {
+  if (newUuid) {
+    deviceUuid.value = newUuid
+  } else {
+    deviceUuid.value = deviceStore.getDeviceUuid()
+  }
+
   // 记录到历史
   if (deviceUuid.value) {
-    deviceStore.addDeviceToHistory({ uuid: deviceUuid.value, name: deviceInfo.value?.name || deviceInfo.value?.deviceName })
+    deviceStore.addDeviceToHistory({
+      uuid: deviceUuid.value,
+      name: deviceInfo.value?.name || deviceInfo.value?.deviceName
+    })
   }
+
   loadDeviceInfo()
   loadDeviceAccount()
   loadTokens()
 }
 
-const setPassword = async () => {
-  if (!newPassword.value) return
 
-  try {
-    const data = {
-      newPassword: newPassword.value,
-    }
-
-    if (hasPassword.value && !accountStore.isAuthenticated) {
-      data.currentPassword = currentPassword.value
-    }
-
-    await apiClient.setDevicePassword(
-      deviceUuid.value,
-      data,
-      accountStore.isAuthenticated ? accountStore.token : null
-    )
-
-    // 重新加载设备信息以更新hasPassword状态
-    await loadDeviceInfo()
-
-    showPasswordDialog.value = false
-    newPassword.value = ''
-    currentPassword.value = ''
-    toast.success('密码设置成功')
-  } catch (error) {
-    toast.error('设置密码失败：' + error.message)
-  }
-}
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleString('zh-CN')
@@ -369,6 +316,12 @@ const handleDeviceNameUpdated = async (newName) => {
   await loadDeviceInfo()
 }
 
+// 设备注册成功回调
+const handleDeviceRegistered = () => {
+  showRegisterDialog.value = false
+  updateUuid()
+}
+
 // 更新 namespace 成功回调
 const handleNamespaceUpdated = async (newNamespace) => {
   if (deviceInfo.value) {
@@ -393,10 +346,7 @@ onMounted(async () => {
     // 加载设备账户信息
     await loadDeviceAccount()
 
-    // 如果有密码但密码提示不存在，单独加载密码提示
-    if (hasPassword.value && !passwordHint.value) {
-      await loadPasswordHint()
-    }
+
 
     // 加载tokens
     await loadTokens()
@@ -410,7 +360,7 @@ onMounted(async () => {
     <div class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
       <div class="container mx-auto px-6 py-4">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-4">
             <!--<div class="rounded-lg bg-gradient-to-br from-primary to-primary/80 p-2.5 shadow-lg">
               <Shield class="h-6 w-6 text-primary-foreground" />
             </div>-->
@@ -420,17 +370,16 @@ onMounted(async () => {
               </h1>
               <p class="text-sm text-muted-foreground">文档形键值数据库</p>
             </div>
+            <!-- 分隔线 -->
+            <div class="h-8 w-px bg-border"></div>
+            <!-- Vercel风格设备切换器 -->
+            <DeviceSwitcher
+              :device-info="deviceInfo"
+              :device-uuid="deviceUuid"
+              @device-changed="updateUuid"
+            />
           </div>
           <div class="flex items-center gap-2">
-            <!-- 切换设备按钮 -->
-            <Button
-              variant="outline"
-              size="sm"
-              @click="showRegisterDialog = true"
-              title="切换设备"
-            >
-              切换设备
-            </Button>
             <!-- 账户状态 -->
             <template v-if="accountStore.isAuthenticated">
               <DropdownMenu v-model:open="showUserMenu" class="z-50">
@@ -475,10 +424,7 @@ onMounted(async () => {
                   <Layers class="h-4 w-4" />
                   设备管理
                 </DropdownItem>
-                <DropdownItem @click="$router.push('/password-manager')">
-                  <Settings class="h-4 w-4" />
-                  高级设置
-                </DropdownItem>
+
                 <DropdownItem @click="$router.push('/auto-auth-management')">
                   <Shield class="h-4 w-4" />
                   自动授权配置
@@ -534,6 +480,7 @@ onMounted(async () => {
                 您的命名空间当前使用设备 UUID，建议修改为更有意义的名称（如班级名、房间号等），方便自动授权时识别。
               </p>
               <Button
+                v-if="accountStore.isAuthenticated"
                 variant="outline"
                 size="sm"
                 @click="showEditNamespaceDialog = true"
@@ -560,20 +507,21 @@ onMounted(async () => {
                   <CardTitle class="text-lg">
                     {{ deviceInfo?.name || '设备' }}
                   </CardTitle>
+                  <Button
+                    v-if="accountStore.isAuthenticated"
+                    variant="ghost"
+                    size="sm"
+                    @click="showEditNameDialog = true"
+                    class="h-6 w-6 p-0"
+                  >
+                    <Edit class="h-3 w-3" />
+                  </Button>
                 </div>
                 <CardDescription>设备命名空间标识符</CardDescription>
               </div>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-              <Badge
-                variant="outline"
-                class="px-3 py-1"
-                :class="hasPassword ? 'border-green-500 text-green-700 dark:text-green-400' : 'border-yellow-500 text-yellow-700 dark:text-yellow-400'"
-              >
-                <Lock v-if="hasPassword" class="h-3 w-3 mr-1.5" />
-                <AlertCircle v-else class="h-3 w-3 mr-1.5" />
-                {{ hasPassword ? '已设密码' : '未设密码' }}
-              </Badge>
+
 
               <!-- 设备账户绑定状态 -->
               <Badge v-if="deviceInfo?.account" variant="secondary" class="px-3 py-1">
@@ -589,14 +537,7 @@ onMounted(async () => {
                 <User class="h-4 w-4 mr-2" />
                 绑定到账户
               </Button>
-              <Button
-                @click="$router.push('/password-manager')"
-                variant="outline"
-                size="sm"
-              >
-                <Settings class="h-4 w-4 mr-1" />
-                高级设置
-              </Button>
+
               <Button
                 @click="$router.push('/auto-auth-management')"
                 variant="outline"
@@ -617,6 +558,7 @@ onMounted(async () => {
                 <div class="flex items-center justify-between mb-2">
                   <Label class="text-sm font-medium">命名空间</Label>
                   <Button
+                    v-if="accountStore.isAuthenticated"
                     variant="ghost"
                     size="sm"
                     @click="showEditNamespaceDialog = true"
@@ -654,24 +596,10 @@ onMounted(async () => {
                 <div class="text-2xl font-bold text-primary">{{ tokens.length }}</div>
                 <div class="text-xs text-muted-foreground">令牌数</div>
               </div>
-              <div class="p-3 rounded-lg bg-muted/50 text-center">
-                <div class="text-2xl font-bold text-primary">
-                  {{ hasPassword ? '安全' : '未设置' }}
-                </div>
-                <div class="text-xs text-muted-foreground">安全状态</div>
-              </div>
+
             </div>
 
-            <!-- Password Hint (if exists) -->
-            <div v-if="hasPassword && passwordHint" class="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900">
-              <div class="flex items-start gap-2">
-                <Info class="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
-                <div class="flex-1">
-                  <p class="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">密码提示</p>
-                  <p class="text-sm text-blue-700 dark:text-blue-300">{{ passwordHint }}</p>
-                </div>
-              </div>
-            </div>
+
           </div>
         </CardContent>
       </Card>
@@ -764,20 +692,9 @@ onMounted(async () => {
                 placeholder="为此授权添加备注"
               />
             </div>
-            <div v-if="hasPassword">
-              <PasswordInput
-                v-model="authPassword"
-                label="设备密码"
-                placeholder="输入设备密码"
-                :device-uuid="deviceUuid"
-                :show-hint="true"
-                :show-strength="false"
-                :required="!accountStore.isAuthenticated"
-              /><br/>
-              <p v-if="accountStore.isAuthenticated" class="text-xs text-muted-foreground mt-2">
-                已登录绑定账户，无需输入密码
-              </p>
-            </div>
+            <p v-if="accountStore.isAuthenticated" class="text-xs text-muted-foreground mt-2">
+              已登录绑定账户，无需输入密码
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" @click="showAuthorizeDialog = false">
@@ -811,32 +728,7 @@ onMounted(async () => {
               </div>
             </div>
 
-            <!-- 如果没有登录账户且设备有密码，显示密码输入框 -->
-            <div v-if="!accountStore.isAuthenticated && hasPassword" class="space-y-2">
-              <Label for="revoke-password">设备密码</Label>
-              <PasswordInput
-                id="revoke-password"
-                v-model="revokePassword"
-                placeholder="请输入设备密码"
-                required
-              />
-            </div>
 
-            <!-- 显示当前认证状态 -->
-            <div class="text-sm text-muted-foreground">
-              <div v-if="accountStore.isAuthenticated" class="flex items-center gap-2 text-green-600">
-                <CheckCircle2 class="h-4 w-4" />
-                已登录账户，无需输入密码
-              </div>
-              <div v-else-if="!hasPassword" class="flex items-center gap-2 text-blue-600">
-                <Info class="h-4 w-4" />
-                设备未设置密码
-              </div>
-              <div v-else class="flex items-center gap-2 text-orange-600">
-                <Lock class="h-4 w-4" />
-                需要验证设备密码
-              </div>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" @click="showRevokeDialog = false">
@@ -897,57 +789,7 @@ onMounted(async () => {
       </Dialog>
 
 
-      <Dialog v-model:open="showPasswordDialog">
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{{ hasPassword ? '修改密码' : '设置密码' }}</DialogTitle>
-            <DialogDescription>
-              {{ hasPassword ? '输入当前密码和新密码' : '为设备设置密码以增强安全性' }}
-            </DialogDescription>
-          </DialogHeader>
-          <div class="space-y-4 py-4">
-            <div v-if="hasPassword && !accountStore.isAuthenticated">
-              <PasswordInput
-                v-model="currentPassword"
-                label="当前密码"
-                placeholder="输入当前密码"
-                :device-uuid="deviceUuid"
-                :show-hint="true"
-                :show-strength="false"
-                required
-              />
-            </div>
-            <div v-if="accountStore.isAuthenticated && hasPassword" class="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900">
-              <div class="flex items-start gap-2">
-                <Info class="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
-                <div class="flex-1">
-                  <p class="text-sm font-medium text-blue-900 dark:text-blue-100">账户已登录</p>
-                  <p class="text-sm text-blue-700 dark:text-blue-300">您已登录绑定的账户，无需输入当前密码</p>
-                </div>
-              </div>
-            </div>
-            <div>
-              <PasswordInput
-                v-model="newPassword"
-                label="新密码"
-                placeholder="输入新密码"
-                :show-hint="false"
-                :show-strength="true"
-                :min-length="8"
-                required
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" @click="showPasswordDialog = false">
-              取消
-            </Button>
-            <Button @click="setPassword">
-              确认
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </div>
 
     <!-- 登录弹框 -->
@@ -962,7 +804,7 @@ onMounted(async () => {
     />    <!-- 设备注册弹框 -->
     <DeviceRegisterDialog
       v-model="showRegisterDialog"
-      @confirm="updateUuid"
+      @confirm="handleDeviceRegistered"
       :required="deviceRequired"
     />
 
@@ -971,7 +813,6 @@ onMounted(async () => {
       v-model="showEditNameDialog"
       :device-uuid="deviceUuid"
       :current-name="deviceInfo?.deviceName || ''"
-      :has-password="hasPassword"
       @success="handleDeviceNameUpdated"
     />
 

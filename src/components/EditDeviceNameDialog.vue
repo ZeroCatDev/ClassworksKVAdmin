@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Edit } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
-import PasswordInput from './PasswordInput.vue'
+
 
 const props = defineProps({
   modelValue: {
@@ -23,10 +23,7 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  hasPassword: {
-    type: Boolean,
-    default: false
-  }
+
 })
 
 const emit = defineEmits(['update:modelValue', 'success'])
@@ -34,7 +31,6 @@ const emit = defineEmits(['update:modelValue', 'success'])
 const accountStore = useAccountStore()
 
 const deviceName = ref('')
-const password = ref('')
 const isSubmitting = ref(false)
 
 const isOpen = computed({
@@ -42,15 +38,12 @@ const isOpen = computed({
   set: (val) => {
     if (val) {
       deviceName.value = props.currentName || ''
-      password.value = ''
     }
     emit('update:modelValue', val)
   }
 })
 
-const needsPassword = computed(() => {
-  return props.hasPassword && !accountStore.isAuthenticated
-})
+
 
 const updateDeviceName = async () => {
   if (!deviceName.value.trim()) {
@@ -63,7 +56,6 @@ const updateDeviceName = async () => {
     await apiClient.setDeviceName(
       props.deviceUuid,
       deviceName.value.trim(),
-      needsPassword.value ? password.value : null,
       accountStore.isAuthenticated ? accountStore.token : null
     )
 
@@ -104,23 +96,7 @@ const updateDeviceName = async () => {
           />
         </div>
 
-        <div v-if="needsPassword">
-          <PasswordInput
-            v-model="password"
-            label="设备密码"
-            placeholder="输入设备密码"
-            :device-uuid="deviceUuid"
-            :show-hint="true"
-            :show-strength="false"
-            required
-          />
-        </div>
 
-        <div v-if="accountStore.isAuthenticated && hasPassword" class="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900">
-          <p class="text-sm text-blue-700 dark:text-blue-300">
-            您已登录绑定的账户，无需输入密码
-          </p>
-        </div>
       </div>
 
       <DialogFooter>

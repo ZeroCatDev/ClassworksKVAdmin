@@ -27,7 +27,6 @@ import {
 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import EditDeviceNameDialog from '@/components/EditDeviceNameDialog.vue'
-import ResetDevicePasswordDialog from '@/components/ResetDevicePasswordDialog.vue'
 
 const router = useRouter()
 const accountStore = useAccountStore()
@@ -35,7 +34,6 @@ const accountStore = useAccountStore()
 const devices = ref([])
 const isLoading = ref(false)
 const showEditNameDialog = ref(false)
-const showResetPasswordDialog = ref(false)
 const showDeleteDialog = ref(false)
 const currentDevice = ref(null)
 
@@ -84,20 +82,9 @@ const editDeviceName = (device) => {
   showEditNameDialog.value = true
 }
 
-// 重置设备密码
-const resetPassword = (device) => {
-  currentDevice.value = device
-  showResetPasswordDialog.value = true
-}
-
 // 设备名称更新成功
 const handleDeviceNameUpdated = async () => {
   await loadDevices()
-}
-
-// 密码重置成功
-const handlePasswordReset = async () => {
-  toast.success('密码重置成功')
 }
 
 // 格式化日期
@@ -209,15 +196,7 @@ onMounted(() => {
                   <Edit class="h-3 w-3 mr-1" />
                   重命名
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  @click="resetPassword(device)"
-                  class="flex-1"
-                >
-                  <Lock class="h-3 w-3 mr-1" />
-                  重置密码
-                </Button>
+
               </div>
 
               <Button
@@ -245,14 +224,7 @@ onMounted(() => {
       @success="handleDeviceNameUpdated"
     />
 
-    <!-- 重置密码弹框 -->
-    <ResetDevicePasswordDialog
-      v-if="currentDevice"
-      v-model="showResetPasswordDialog"
-      :device-uuid="currentDevice.uuid"
-      :device-name="currentDevice.name || ''"
-      @success="handlePasswordReset"
-    />
+
 
     <!-- 解绑确认对话框 -->
     <AlertDialog v-model:open="showDeleteDialog">

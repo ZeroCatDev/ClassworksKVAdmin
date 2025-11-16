@@ -84,7 +84,7 @@ class ApiClient {
   }
 
   async revokeToken(targetToken, authOptions = {}) {
-    const { deviceUuid, password, usePathParam = true, bearerToken } = authOptions;
+    const { deviceUuid, usePathParam = true, bearerToken } = authOptions;
 
     if (usePathParam) {
       // 使用路径参数方式 (推荐)
@@ -94,9 +94,6 @@ class ApiClient {
         headers['Authorization'] = `Bearer ${bearerToken}`;
       } else if (deviceUuid) {
         headers['x-device-uuid'] = deviceUuid;
-        if (password) {
-          headers['x-device-password'] = password;
-        }
       }
 
       return this.fetch(`/apps/tokens/${targetToken}`, {
@@ -112,9 +109,6 @@ class ApiClient {
         headers['Authorization'] = `Bearer ${bearerToken}`;
       } else if (deviceUuid) {
         headers['x-device-uuid'] = deviceUuid;
-        if (password) {
-          headers['x-device-password'] = password;
-        }
       }
 
       return this.fetch(`/apps/tokens?${params}`, {
@@ -126,19 +120,18 @@ class ApiClient {
 
   // 应用安装接口 (对应后端的 /apps/devices/:uuid/install/:appId)
   async authorizeApp(appId, deviceUuid, options = {}) {
-    const { password, note, token } = options;
+    const { note, token } = options;
 
     const headers = {
       'x-device-uuid': deviceUuid,
     };
-
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
     // 使用新的安装接口
-    return this.fetch(`/apps/devices/${deviceUuid}/install/${appId}?password=${password}`, {
+    return this.fetch(`/apps/devices/${deviceUuid}/install/${appId}`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ note: note || '应用授权' }),
@@ -146,13 +139,9 @@ class ApiClient {
   }
 
   // 设备级别的应用卸载，使用新的 uninstall 接口
-  async revokeDeviceToken(deviceUuid, installId, password = null, token = null) {
+  async revokeDeviceToken(deviceUuid, installId, token = null) {
     const params = new URLSearchParams({ uuid: deviceUuid });
     const headers = {};
-
-    if (password) {
-      params.set('password', password);
-    }
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -164,76 +153,9 @@ class ApiClient {
     });
   }
 
-  // 设备密码管理 API
-  async setDevicePassword(deviceUuid, data, token = null) {
-    const { newPassword, currentPassword, passwordHint } = data;
 
-    // 检查设备是否已设置密码
-    const deviceInfo = await this.getDeviceInfo(deviceUuid);
-    const hasPassword = deviceInfo.hasPassword;
 
-    if (hasPassword) {
-      // 使用PUT修改密码
-      const params = new URLSearchParams();
-      params.set('uuid', deviceUuid);
-      params.set('newPassword', newPassword);
-      if (currentPassword) {
-        params.set('currentPassword', currentPassword);
-      }
-      if (passwordHint !== undefined) {
-        params.set('passwordHint', passwordHint);
-      }
 
-      const headers = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      return this.fetch(`/devices/${deviceUuid}/password?${params}`, {
-        method: 'PUT',
-        headers,
-      });
-    } else {
-      // 使用POST初次设置密码
-      const params = new URLSearchParams();
-      params.set('newPassword', newPassword);
-      if (passwordHint !== undefined) {
-        params.set('passwordHint', passwordHint);
-      }
-
-      return this.fetch(`/devices/${deviceUuid}/password?${params}`, {
-        method: 'POST',
-      });
-    }
-  }
-
-  async deleteDevicePassword(deviceUuid, password, token = null) {
-    const params = new URLSearchParams({ uuid: deviceUuid });
-    const headers = {};
-
-    // 如果提供了账户token，使用JWT认证
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    } else if (password) {
-      params.set('password', password);
-    }
-
-    return this.fetch(`/devices/${deviceUuid}/password?${params}`, {
-      method: 'DELETE',
-      headers,
-    });
-  }
-
-  async setDevicePasswordHint(deviceUuid, hint, password = null, token = null) {
-    return this.authenticatedFetch(`/devices/${deviceUuid}/password-hint`, {
-      method: 'PUT',
-      body: JSON.stringify({ hint, password }),
-    }, token)
-  }
-
-  async getDevicePasswordHint(deviceUuid) {
-    return this.fetch(`/devices/${deviceUuid}/password-hint`)
-  }
 
   // 设备授权相关 API
   async bindDeviceCode(deviceCode, token) {
@@ -292,32 +214,7 @@ class ApiClient {
     return this.fetch(`/apps/devices/${deviceUuid}/apps`)
   }
 
-  // 密码提示管理 API
-  async getPasswordHint(deviceUuid) {
-    try {
-      const response = await this.fetch(`/devices/${deviceUuid}`)
-      return { hint: response.device?.passwordHint || '' }
-    } catch (error) {
-      // 如果接口不存在，返回空提示
-      return { hint: '' }
-    }
-  }
 
-  async setPasswordHint(deviceUuid, hint, password) {
-    try {
-      return await this.fetch(`/devices/${deviceUuid}/password-hint?password=${encodeURIComponent(password)}`, {
-        method: 'PUT',
-        headers: {
-          'x-device-uuid': deviceUuid,
-        },
-        body: JSON.stringify({ passwordHint: hint }),
-      })
-    } catch (error) {
-      // 如果接口不存在，忽略错误
-      console.log('Password hint API not available')
-      return { success: false }
-    }
-  }
 
   // 账户相关 API（Authorization 由 axios 拦截器统一注入）
   async getOAuthProviders() {
@@ -391,15 +288,12 @@ class ApiClient {
   }
 
   // 设备名称管理 API
-  async setDeviceName(deviceUuid, name, password = null, token = null) {
+  async setDeviceName(deviceUuid, name, token = null) {
     const headers = {
       'x-device-uuid': deviceUuid,
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-    }
-    if (password) {
-      headers['x-device-password'] = password;
     }
 
     return this.fetch(`/devices/${deviceUuid}/name`, {
@@ -409,42 +303,7 @@ class ApiClient {
     });
   }
 
-  // 修改设备密码 API
-  async updateDevicePassword(deviceUuid, currentPassword, newPassword, passwordHint = null, token = null) {
-    const headers = {
-      'x-device-uuid': deviceUuid,
-    };
 
-    // 如果提供了账户token，使用JWT认证（账户拥有者无需当前密码）
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    } else if (currentPassword) {
-      headers['x-device-password'] = currentPassword;
-    }
-
-    const body = { newPassword, passwordHint };
-    // 只有在非账户拥有者时才需要发送当前密码
-    if (!token && currentPassword) {
-      body.currentPassword = currentPassword;
-    }
-
-    return this.fetch(`/devices/${deviceUuid}/password`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(body),
-    });
-  }
-
-  // 验证设备密码 API
-  async verifyDevicePassword(deviceUuid, password) {
-    return this.fetch(`/devices/${deviceUuid}`, {
-      method: 'GET',
-      headers: {
-        'x-device-uuid': deviceUuid,
-        'x-device-password': password,
-      },
-    });
-  }
 
   // 设备注册 API
   async registerDevice(uuid, deviceName, token = null) {
@@ -454,17 +313,7 @@ class ApiClient {
     }, token)
   }
 
-  // 账户拥有者重置设备密码 API
-  async resetDevicePasswordAsOwner(deviceUuid, newPassword, passwordHint = null, token) {
-    return this.fetch(`/devices/${deviceUuid}/password`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'x-device-uuid': deviceUuid,
-      },
-      body: JSON.stringify({ newPassword, passwordHint }),
-    });
-  }
+
 
   // 兼容性方法 - 保持旧的API调用方式
   async getTokens(deviceUuid, options = {}) {
@@ -476,11 +325,10 @@ class ApiClient {
     return this.revokeToken(targetToken, { deviceUuid, usePathParam: true });
   }
 
-  // 便捷方法：使用设备UUID和密码删除token
-  async revokeTokenByDevice(targetToken, deviceUuid, password = null) {
+  // 便捷方法：使用设备UUID删除token
+  async revokeTokenByDevice(targetToken, deviceUuid) {
     return this.revokeToken(targetToken, {
       deviceUuid,
-      password,
       usePathParam: true
     });
   }

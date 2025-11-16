@@ -19,7 +19,6 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, XCircle, Loader2, Shield, Key, AlertCircle, User, Plus, Check } from 'lucide-vue-next'
 import AppCard from '@/components/AppCard.vue'
-import PasswordInput from '@/components/PasswordInput.vue'
 import LoginDialog from '@/components/LoginDialog.vue'
 import DeviceRegisterDialog from '@/components/DeviceRegisterDialog.vue'
 import { toast } from 'vue-sonner'
@@ -46,12 +45,8 @@ const customDeviceUuid = ref('')
 const showRegisterDialog = ref(false)
 const deviceRequired = ref(false)
 
-// 计算属性获取是否有密码
-const hasPassword = computed(() => deviceInfo.value?.hasPassword || false)
-
 // 表单数据
 const inputDeviceCode = ref('')
-const authPassword = ref('')
 const authNote = ref('')
 
 // 应用信息
@@ -153,10 +148,6 @@ const authorizeWithDeviceCode = async () => {
       note: authNote.value || '设备代码授权',
     }
 
-    if (hasPassword.value && authPassword.value) {
-      authData.password = authPassword.value
-    }
-
     const authResult = await apiClient.authorizeApp(appId.value, deviceUuid.value, authData)
     const token = authResult.token
 
@@ -180,10 +171,6 @@ const authorizeWithCallback = async () => {
   try {
     const authData = {
       note: authNote.value || '回调授权',
-    }
-
-    if (hasPassword.value && authPassword.value) {
-      authData.password = authPassword.value
     }
 
     const authResult = await apiClient.authorizeApp(appId.value, deviceUuid.value, authData)
@@ -221,7 +208,7 @@ const goHome = () => {
 const retry = () => {
   step.value = 'input'
   errorMessage.value = ''
-  authPassword.value = ''
+
 }
 
 // 加载设备信息
@@ -314,10 +301,7 @@ onMounted(async () => {
             <code class="text-xs font-mono bg-muted px-3 py-2 rounded flex-1 truncate">
               {{ deviceUuid }}
             </code>
-            <Badge v-if="hasPassword" variant="secondary" class="shrink-0">
-              <Shield class="h-3 w-3 mr-1" />
-              已保护
-            </Badge>
+
           </div>
 
           <!-- 设备绑定状态 -->
@@ -379,18 +363,7 @@ onMounted(async () => {
           </div>
 
           <!-- 密码输入（使用统一组件） -->
-          <div v-if="hasPassword">
-            <PasswordInput
-              v-model="authPassword"
-              label="设备密码"
-              placeholder="输入设备密码以确认授权"
-              :device-uuid="deviceUuid"
-              :show-hint="true"
-              :show-strength="false"
-              required
-              :error="step === 'error' && errorMessage.includes('密码') ? '密码错误' : ''"
-            />
-          </div>
+
 
           <!-- 授权按钮 -->
           <div class="space-y-3 pt-2">
@@ -398,7 +371,7 @@ onMounted(async () => {
               @click="handleSubmit"
               class="w-full"
               size="lg"
-              :disabled="(isDeviceCodeMode && !currentDeviceCode) || (hasPassword && !authPassword)"
+              :disabled="(isDeviceCodeMode && !currentDeviceCode)"
             >
               <Key class="mr-2 h-4 w-4" />
               确认授权

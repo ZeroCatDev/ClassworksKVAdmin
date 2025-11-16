@@ -50,15 +50,6 @@ const features = [
     iconBg: 'bg-orange-500/10',
     iconColor: 'text-orange-600 dark:text-orange-400',
   },
-  {
-    title: '高级设置',
-    description: '密码管理、安全设置和其他高级功能',
-    icon: Settings,
-    path: '/password-manager',
-    color: 'from-gray-500 to-slate-500',
-    iconBg: 'bg-gray-500/10',
-    iconColor: 'text-gray-600 dark:text-gray-400',
-  },
 ]
 
 const navigateTo = (path) => {
