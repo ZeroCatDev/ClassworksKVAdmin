@@ -123,7 +123,7 @@ const loadTokens = async () => {
     for (const token of tokens.value) {
       if (!appInfoCache.value[token.appId]) {
         try {
-          const appResponse = await fetch(`https://zerocat-api.houlangs.com/oauth/applications/${token.appId}`)
+          const appResponse = await fetch(`https://zerocat-api.houlang.cloud/oauth/applications/${token.appId}`)
           if (appResponse.ok) {
             appInfoCache.value[token.appId] = await appResponse.json()
           }
