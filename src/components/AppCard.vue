@@ -55,7 +55,7 @@ const renderedReadme = computed(() => {
 // 获取应用信息
 const fetchApp = async () => {
   try {
-    const response = await fetch(`https://zerocat-api.houlang.cloud/oauth/applications/${props.appId}`);
+    const response = await fetch(`https://api.zcservice.houlang.cloud/oauth/applications/${props.appId}`);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch app info: ${response.status}`);
